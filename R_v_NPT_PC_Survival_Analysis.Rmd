@@ -1,0 +1,1661 @@
+---
+title: "Bruckner Oncology Resistant Cancer Survival Analysis"
+author: "AJ Book"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Clear the entire environment
+rm(list = ls())
+
+setwd("C:/Users/ajboo/BookAbraham/RProjects/SurvivalAnalysis")
+
+# Define the output directory path
+output_dir <- "output"
+
+# Create the output directory if it doesn't exist
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir)
+}
+
+# Set the output directory for plots
+knitr::opts_chunk$set(fig.path = paste0(output_dir, "/plot", "-"))
+
+
+```
+
+
+## Load Libraries
+
+This section is reserved for libraries we will use throughout this RMD
+file and any imported modules
+
+```{python imports}
+# Importing necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from lifelines import KaplanMeierFitter, CoxPHFitter
+
+```
+
+```{r libraries, echo=TRUE}
+library(tidyverse)
+library(survival)
+library(survminer)
+library(ggsci)
+library(knitr)
+library(ggsurvfit)
+library(gt)
+library(reticulate)
+library(maxstat)
+```
+
+
+Import the data file
+
+
+```{python load and convert data}
+# Define the function to load and preprocess data
+def load_and_convert_data(file_path, cancer_type):
+    # Load data from CSV file
+    df = pd.read_csv(file_path)
+    
+    # Subset data for the specified cancer type
+    cancer_df = df[df['Cancer_Type'] == cancer_type].copy()  # Create a copy
+    
+    # Convert selected columns to categorical variables
+    factors = ['Gender', 'Cancer_Type', 'Prior_Tx', 'Resistant', 'Cancer_Status', 'Risk_Group_ALAN']
+    cancer_df[factors] = cancer_df[factors].astype('category')
+
+        # Print message indicating successful loading
+    print("Data for", cancer_type, "loaded successfully.")
+    
+    return cancer_df
+
+# Load and preprocess data for Pancreatic Cancer
+pancreatic_df = load_and_convert_data("data/Organized_Bruckner_Data.csv", "Pancreatic Cancer")
+
+# Load and preprocess data for Ovarian Cancer
+#ovarian_df = load_and_convert_data("data/Organized_Bruckner_Data.csv", "Ovarian Cancer")
+
+
+```
+Subset for Resistant Data
+
+```{python resistant subset}
+
+def subset_by_resistant(df, resistant_value):
+    """
+    Subset a DataFrame by the value of the 'Resistant' column.
+    
+    Parameters:
+        df (pd.DataFrame): The DataFrame to subset.
+        resistant_value (str): The value to subset by (e.g., 'Resistant').
+    
+    Returns:
+        pd.DataFrame: The subsetted DataFrame.
+    """
+    subset_df = df[df['Resistant'] == resistant_value].copy()
+    print(f"Subsetted DataFrame for Resistant='{resistant_value}' created successfully.")
+    return subset_df
+
+# Subset data frames for Resistant cases
+#resistant_ovarian_df = subset_by_resistant(ovarian_df, "Resistant")
+#resistant_pancreatic_df = subset_by_resistant(pancreatic_df, "Resistant")
+
+
+```
+
+```{python subset by cancer Status}
+def subset_by_cancer_status(df, cancer_status):
+    """
+    Subset a DataFrame by the value of the 'Cancer_Status' column.
+    
+    Parameters:
+        df (pd.DataFrame): The DataFrame to subset.
+        cancer_status (str): The value to subset by (e.g., 'NPT- Pancreatic Cancer').
+    
+    Returns:
+        pd.DataFrame: The subsetted DataFrame.
+    """
+    subset_df = df[df['Cancer_Status'] == cancer_status].copy()
+    print(f"Subsetted DataFrame for Cancer_Status='{cancer_status}' created successfully.")
+    return subset_df
+
+# Subset data frames for NPT- Pancreatic Cancer and Resistant- Pancreatic Cancer
+npt_pancreatic_df = subset_by_cancer_status(pancreatic_df, 'NPT- Pancreatic Cancer')
+resistant_pancreatic_df = subset_by_cancer_status(pancreatic_df, 'Resistant- Pancreatic Cancer')
+
+```
+```{python recode ALAN}
+# Recode Risk_Group_ALAN column
+# Define the bins and labels
+bins = [-1, 0, 2, 4]
+labels = ['Low_Risk', 'Intermediate_Risk', 'High_Risk']
+
+# Recode Risk_Group_ALAN column based on Prognostic_Score_ALAN
+resistant_pancreatic_df['Risk_Group_ALAN'] = pd.cut(resistant_pancreatic_df['Prognostic_Score_ALAN'], bins=bins, labels=labels, include_lowest=False)
+npt_pancreatic_df['Risk_Group_ALAN'] = pd.cut(npt_pancreatic_df['Prognostic_Score_ALAN'], bins=bins, labels=labels, include_lowest=False)
+
+```
+
+Examine the variables within your data 
+```{python examine subset}
+# Glimpse at the subsetted data frames
+print("\nSubsetted NPT Pancreatic Cancer Data Frame:")
+print(npt_pancreatic_df.head())
+print("\nSubsetted Resistant Pancreatic Cancer Data Frame:")
+print(resistant_pancreatic_df.head())
+
+```
+
+
+Determine the types of class each column contains as its datatype
+```{python examine type}
+# Check data types of columns in DataFrame
+print(npt_pancreatic_df.dtypes)
+print(resistant_pancreatic_df.dtypes)
+
+```
+## Numeric Summary
+
+Step 1: calculate the numeric statistics of the pancreatic_df
+data frame #Note:You can specify percentiles, quantiles and normality or you can give specific percentiles depending on what you are interested in looking at this specific usage is looking at the 33rd and 67th percentiles of the data
+
+Step 2: Create histograms, boxplots and distribution curves to visualize the descriptive statistics of the numeric variables.
+
+```{python numeric summary}
+def calculate_numeric_statistics(data):
+    # Select only numeric columns
+    numeric_data = data.select_dtypes(include=np.number)
+    
+    # Calculate descriptive statistics
+    descriptive_stats = numeric_data.describe().transpose()
+    
+    # Calculate interquartile range (IQR) and include quantiles (25th, 50th, and 75th percentiles)
+    quantiles = numeric_data.quantile([0.25, 0.5, 0.75], axis=0).transpose()
+    quantiles["IQR"] = quantiles[0.75] - quantiles[0.25]
+    quantiles.columns = ["Q1", "Median", "Q3", "IQR"]
+    
+    # Calculate additional percentiles (33rd and 67th)
+    custom_percentiles = np.percentile(numeric_data, [33, 67], axis=0)
+    custom_percentiles_df = pd.DataFrame(custom_percentiles.T, columns=["33rd Percentile", "67th Percentile"], index=numeric_data.columns)
+    
+    # Combine all statistics
+    stats_combined = pd.concat([descriptive_stats, quantiles, custom_percentiles_df], axis=1)
+    
+    return stats_combined
+
+# Create summary statistics table for NPT pancreatic cancer
+npt_pancreatic_stats = calculate_numeric_statistics(npt_pancreatic_df)
+
+# Create summary statistics table for resistant pancreatic cancer
+resistant_pancreatic_stats = calculate_numeric_statistics(resistant_pancreatic_df)
+
+# Display the tables
+print("Summary statistics for NPT Pancreatic cancer:")
+print(npt_pancreatic_stats)
+print("\nSummary statistics for resistant pancreatic cancer:")
+print(resistant_pancreatic_stats)
+```
+
+```{r advanced numeric summary}
+
+#Load Util functions
+source("Utils.R")
+
+# Generate the first table for Resistant Pancreatic Cancer
+resistant_pancreatic_table <- calc_num_stats(py$resistant_pancreatic_df, selected_labels = c("Quantiles", "Percentiles"), percentiles = c(33, 67), title = "Numeric Statistics for Resistant Pancreatic Cancer")
+
+# Save the table as an image
+gtsave(resistant_pancreatic_table, filename = file.path(output_dir, "resistant_pancreatic_table.png"))
+
+# Generate the second table for NPT Pancreatic Cancer
+npt_pancreatic_table <- calc_num_stats(py$npt_pancreatic_df, selected_labels = c("Quantiles", "Percentiles"), percentiles = c(33, 67), title = "Numeric Statistics for NPT Pancreatic Cancer")
+
+# Save the table as an image
+gtsave(npt_pancreatic_table, filename = file.path(output_dir, "npt_pancreatic_table.png"))
+
+
+```
+
+```{python numeric distribution, echo=FALSE}
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Define the function to plot histograms and boxplots for one variable
+def plot_numeric_statistics(df, variable, subset):
+    # Create subplots
+    fig, (ax_box, ax_hist) = plt.subplots(2, sharex=True, gridspec_kw={"height_ratios": (.15, .85)})
+    
+    # Plot boxplot
+    sns.boxplot(x=df[variable], ax=ax_box, color='orange', width=0.3, linewidth=1.5, showmeans=True, meanline=True,
+                meanprops=dict(color='black', linestyle='--', linewidth=2),
+                medianprops=dict(color='black', linewidth=2))
+    ax_box.set_ylabel(variable)
+    
+    # Calculate mean and std_dev
+    mean = df[variable].mean()
+    std_dev = df[variable].std()
+    
+    # Plot histogram with density function
+    sns.histplot(df[variable], kde=True, bins=12, stat='density', color='skyblue', ax=ax_hist)
+    ax_hist.set_xlabel(variable)
+    ax_hist.set_ylabel('Density')
+    
+    # Add lines for mean and mean +/- std_dev to the histogram
+    ax_hist.axvline(mean, color='red', linestyle='--', linewidth=2, label=f'Mean: {mean:.2f}')
+    ax_hist.axvline(mean + std_dev, color='purple', linestyle='--', linewidth=2, label=f'Mean + Std Dev: {mean + std_dev:.2f}')
+    ax_hist.axvline(mean - std_dev, color='purple', linestyle='--', linewidth=2, label=f'Mean - Std Dev: {mean - std_dev:.2f}')
+    
+    # Add label for the IQR on the boxplot
+    q1 = df[variable].quantile(0.25)
+    q3 = df[variable].quantile(0.75)
+    iqr = q3 - q1
+    ax_box.text(0.5, 0.5, 'IQR', color='black', ha='center', fontsize=10, transform=ax_box.transAxes)
+    
+    # Remove y-axis ticks for boxplot
+    ax_box.set_yticks([])
+    
+    # Despine the plots
+    sns.despine(ax=ax_hist)
+    sns.despine(ax=ax_box, left=True)
+    
+    # Set common xlabel
+    plt.xlabel(variable)
+    
+    # Add title to the entire plot
+    plt.suptitle(f'{subset} - by {variable}')
+    
+    # Show the plot
+    plt.tight_layout()
+    
+    # Save the plot as an image
+    plt.savefig(f'output/{subset}_{variable}_plot.png')
+    
+    # Close the plot to release memory
+    plt.close()
+
+# List of columns to exclude from numeric variables
+exclude_columns = ['Prognostic_Score_ALAN', 'Event_Status']
+
+# Iterate over each numeric variable in your dataset and call the plot_numeric_statistics function
+for column in npt_pancreatic_df.select_dtypes(include=['int64', 'float64']).columns:
+    if column not in exclude_columns:
+        plot_numeric_statistics(npt_pancreatic_df, column, 'NPT_Pancreatic_Cancer')
+        
+# Iterate over each numeric variable in your dataset and call the plot_numeric_statistics function
+for column in resistant_pancreatic_df.select_dtypes(include=['int64', 'float64']).columns:
+    if column not in exclude_columns:
+        plot_numeric_statistics(resistant_pancreatic_df, column, 'Resistant_Pancreatic_Cancer')
+
+```
+
+
+```{r determine cutpoints}
+
+# Define cutoff points for Albumin, LMR, PLT, LY, ANC, NLR, Alk_Phos, and Prognostic_Score_ALAN
+cutoff_points <- list(
+  Albumin = 3.5,
+  LMR = 2.1,
+  PLT = 300,
+  LY = 1.5,
+  MON = 0.8,
+  ANC = c(4, 8),
+  NLR = c(3, 5),
+  Alk_Phos = c(135, 200),
+  Prognostic_Score_ALAN = c(0, 2, 4),
+  Age = c(60, 65, 70)
+)
+
+# Function to categorize values based on cutoff points
+categorize_values <- function(df) {
+  for (variable in names(cutoff_points)) {
+    if (variable %in% colnames(df)) {
+      if (variable == "Prognostic_Score_ALAN") {
+        df[[paste0(variable, "_category")]] <- cut(df[[variable]], 
+                                                    breaks = c(-Inf, 0, 2, Inf),
+                                                    labels = c("0", "1-2", "3-4"))
+      } else if (is.numeric(cutoff_points[[variable]])) {
+        for (cutoff in cutoff_points[[variable]]) {
+          category_column <- ifelse(df[[variable]] < cutoff, 
+                                    paste0("< ", cutoff), 
+                                    paste0(">= ", cutoff))
+          df <- cbind(df, category_column)
+          colnames(df)[ncol(df)] <- paste0(variable, "_", cutoff)
+        }
+      } else {
+        cutoff <- cutoff_points[[variable]]
+        category_column <- cut(df[[variable]], 
+                               breaks = c(-Inf, cutoff, Inf),
+                               labels = c(paste0("< ", cutoff), 
+                                          paste0(">= ", cutoff)))
+        df <- cbind(df, category_column)
+        colnames(df)[ncol(df)] <- paste0(variable, "_category")
+      }
+    } else {
+      cat(paste("Column '", variable, "' not found in the DataFrame.\n"))
+    }
+  }
+  return(df)
+}
+
+
+# Apply categorization to each DataFrame
+categorized_npt_pancreatic_df <- categorize_values(py$npt_pancreatic_df)
+categorized_resistant_pancreatic_df <- categorize_values(py$resistant_pancreatic_df)
+
+# Check the result
+print("Categorized NPT Pancreatic DataFrame:")
+print(head(categorized_npt_pancreatic_df))
+
+print("\nCategorized Resistant Pancreatic DataFrame:")
+print(head(categorized_resistant_pancreatic_df))
+
+```
+```{r convert to factors}
+
+# Function to convert specified columns to factors
+convert_to_factors <- function(df, columns_to_convert) {
+    df[, columns_to_convert] <- lapply(df[, columns_to_convert], factor)
+    return(df)
+}
+
+# Columns to convert to factors
+columns_to_convert <- c('Age_60', 'Age_65', 'Age_70', 'Albumin_3.5', 'LMR_2.1', 'PLT_300', 'LY_1.5', 'MON_0.8', 
+                        'ANC_4', 'ANC_8', 'NLR_3', 'NLR_5', 'Alk_Phos_135', 'Alk_Phos_200')
+
+# Convert columns to factors for categorized_npt_pancreatic_df
+categorized_npt_pancreatic_df <- convert_to_factors(categorized_npt_pancreatic_df, columns_to_convert)
+
+# Convert columns to factors for categorized_resistant_pancreatic_df
+categorized_resistant_pancreatic_df <- convert_to_factors(categorized_resistant_pancreatic_df, columns_to_convert)
+
+# Check the structure of the dataframes
+str(categorized_npt_pancreatic_df)
+str(categorized_resistant_pancreatic_df)
+
+```
+
+
+## Categoric Summary
+
+Calculate the Categorical statistics for our new pancreatic data frame
+
+```{python calculate categoric}
+def calculate_categorical_statistics(data, title="Categorical Statistics"):
+    # Check if data is a DataFrame
+    if not isinstance(data, pd.DataFrame):
+        raise ValueError("Input 'data' must be a pandas DataFrame.")
+    
+    # Drop the 'ID' column if it exists
+    data = data.drop(columns=['ID'], errors='ignore')
+    
+    # Initialize an empty list to store results
+    result_list = []
+    
+    # Iterate over each non-numeric variable
+    for var in data.select_dtypes(exclude=['number']).columns:
+        # Get value counts for the current variable
+        categories = data[var].value_counts()
+        
+        # Append the results to the list
+        result_list.append(pd.DataFrame({
+            'Variable': [var] * len(categories),
+            'Levels': categories.index,
+            'UniqueValues': len(categories),
+            'Frequencies': categories.values.tolist(),
+            'Proportions': (categories / categories.sum()).map(lambda x: f"{x:.2%}").tolist()
+        }))
+    
+    # Concatenate the individual DataFrames into one
+    result = pd.concat(result_list, ignore_index=True)
+    
+    # Return result DataFrame
+    return result
+```
+
+```{python categorized stats}
+import warnings
+
+# Suppress FutureWarnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+# Calling the Python function on the R data frames
+categorized_npt_pancreatic_stats = calculate_categorical_statistics(r.categorized_npt_pancreatic_df)
+categorized_resistant_pancreatic_stats = calculate_categorical_statistics(r.categorized_resistant_pancreatic_df)
+
+print(categorized_npt_pancreatic_stats)
+print(categorized_resistant_pancreatic_stats)
+
+
+```
+
+
+```{r advanced categoric summary}
+
+library(gt)
+
+# Define a function to save gt tables as images
+save_gt_as_image <- function(table, filename) {
+  gtsave(table, filename = filename, path = "output")
+}
+
+# Call the calc_cat_stats function and save the resulting gt tables
+cat_stats_npt_pancreatic <- calc_cat_stats(categorized_npt_pancreatic_df, title = "Categoric Statistics for NPT- Pancreatic Cancer")
+save_gt_as_image(cat_stats_npt_pancreatic, "categoric_stats_npt_pancreatic.png")
+
+cat_stats_resistant_pancreatic <- calc_cat_stats(categorized_resistant_pancreatic_df, title = "Categoric Statistics for Resistant- Pancreatic Cancer")
+save_gt_as_image(cat_stats_resistant_pancreatic, "categoric_stats_resistant_pancreatic.png")
+
+
+```
+
+```{python categoric distribution}
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_combined_categorical_statistics(data, title="Categorical Statistics"):
+    # Create a copy of the data to avoid modifying the original DataFrame
+    data_copy = data.copy()
+    
+    # Remove rows where the split is 100% to 0%
+    data_copy = data_copy[(data_copy['Proportions'] != '100.00%') & (data_copy['Proportions'] != '0.00%')]
+    
+    # Exclude the 'Risk' column
+    data_copy = data_copy[data_copy['Variable'] != 'Risk_Group_ALAN']
+    
+    # Convert Proportions column to numeric
+    data_copy['Proportions'] = data_copy['Proportions'].str.rstrip('%').astype(float)
+    
+    # Combine similar variables
+    data_copy['Variable'] = data_copy['Variable'].str.split('_').str[0]  # Extract the part before '_'
+    
+    # Group by Variable and Levels, calculate mean and standard error of proportions
+    grouped_data = data_copy.groupby(['Variable', 'Levels'])['Proportions'].agg(['mean', 'sem']).reset_index()
+    
+    # Initialize the plot
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(16, 8))  # Increase figure width
+    
+    # Create the bar plot
+    sns.barplot(data=grouped_data, x='Levels', y='mean', hue='Variable')
+    
+    # Add error bars
+    plt.errorbar(x=np.arange(len(grouped_data['Levels'].unique())), y=grouped_data['mean'], 
+                 yerr=grouped_data['sem'], fmt='none', ecolor='black', capsize=3)  # Adjust capsize
+    
+    # Add labels above each bar
+    for index, row in grouped_data.iterrows():
+        plt.text(index, row['mean'], f"{row['mean']:.1f}", ha='center', va='bottom', fontsize=6)
+    
+    # Set title and labels with adjusted font size
+    plt.title(title, fontsize=16)
+    plt.xlabel('Levels', fontsize=14)
+    plt.ylabel('Proportion', fontsize=14)
+    plt.xticks(rotation=45, fontsize=8, ha='right')  # Rotate x-axis labels and adjust font size
+    plt.yticks(fontsize=8)  # Adjust font size for y-axis labels
+    
+    # Adjust legend size and position
+    plt.legend(title='Variable', fontsize=6, title_fontsize=8, loc='upper right')
+    
+    # Adjust spacing
+    plt.tight_layout()  # Adjust spacing
+    
+    # Show plot
+    plt.show()
+
+# Example usage:
+# Plot combined categorical statistics
+plot_combined_categorical_statistics(categorized_npt_pancreatic_stats, title="Categorical Statistics for NPT- Pancreatic Cancer")
+plot_combined_categorical_statistics(categorized_resistant_pancreatic_stats, title="Categorical Statistics for Resistant- Pancreatic Cancer")
+
+plt.close()  # Close the plot to avoid displaying it again later
+
+
+```
+
+
+
+
+## Survival Analysis
+
+```{r Suvival Object}
+
+# Create survival object for categorized_resistant_pancreatic_df
+surv_obj_resistant <- Surv(time = categorized_resistant_pancreatic_df$time_diff_months, event = categorized_resistant_pancreatic_df$Event_Status)
+
+# Create survival object for categorized_npt_pancreatic_df
+surv_obj_npt <- Surv(time = categorized_npt_pancreatic_df$time_diff_months, event = categorized_npt_pancreatic_df$Event_Status)
+```
+
+# Overall Kaplan Meier 
+
+```{r Kaplan Meier}
+
+# Load required libraries
+library(survival)
+library(survminer)
+library(ggsci)
+library(ggsurvfit)
+library(ggplotify)
+
+# Check if 'ggsurvplot' is loaded in the namespace
+  if (!"ggsurvplot" %in% loadedNamespaces()) {
+    library(survminer)
+  }
+resistant_fit <- survfit(Surv(time = categorized_resistant_pancreatic_df$time_diff_months, event = categorized_resistant_pancreatic_df$Event_Status) ~1, data = categorized_resistant_pancreatic_df)
+
+resistant_kmplot <- ggsurvplot(resistant_fit,
+                              data = categorized_resistant_pancreatic_df,
+                              title = "Survival Curve for Resistant Pancreatic Cancer",
+                              censor = TRUE,
+                              xlab = "Time (Months)",
+                              ylab = "Survival Probability",
+                              conf.int = TRUE,
+                              conf.int.style = "step",
+                              conf.int.alpha = 0.2,
+                              ggtheme = theme_minimal(),
+                              surv.median.line = "hv",
+                              xlim = c(0, 24),
+                              break.time.by = 3,
+                              breaks = seq(0, 24, by = 3),
+                              surv.scale = "percent",
+                              legend.labs = paste("Resistant- Pancreatic Cancer (N =", nrow(categorized_resistant_pancreatic_df),")"),
+                              palette = "lancet")
+
+resistant_kmplot <- resistant_kmplot + ggsurvfit::theme_ggsurvfit_KMunicate()
+
+
+
+npt_fit <- survfit(Surv(time = categorized_npt_pancreatic_df$time_diff_months, event = categorized_npt_pancreatic_df$Event_Status) ~1, data = categorized_npt_pancreatic_df)
+
+npt_kmplot <- ggsurvplot(npt_fit,
+                              data = categorized_npt_pancreatic_df,
+                              title = "Survival Curve for No Prior Treatment Pancreatic Cancer",
+                              censor = TRUE,
+                              xlab = "Time (Months)",
+                              ylab = "Survival Probability",
+                              conf.int = TRUE,
+                              conf.int.style = "step",
+                              conf.int.alpha = 0.2,
+                              ggtheme = theme_minimal(),
+                              surv.median.line = "hv",
+                              xlim = c(0, 24),
+                              break.time.by = 3,
+                              breaks = seq(0, 24, by = 3),
+                              surv.scale = "percent",
+                              legend.labs = paste("NPT- Pancreatic Cancer (N =", nrow(categorized_npt_pancreatic_df),")"),
+                              palette = "lancet")
+
+npt_kmplot <- npt_kmplot + ggsurvfit::theme_ggsurvfit_KMunicate()
+
+resistant_kmplot
+npt_kmplot
+
+
+# Convert resistant_kmplot and npt_kmplot to ggplot objects
+resistant_kmplot_gg <- resistant_kmplot$plot
+npt_kmplot_gg <- npt_kmplot$plot
+
+# Save the ggplot objects
+ggsave(filename = "output/resistant_kmplot.png", plot = resistant_kmplot_gg, width = 10, height = 6)
+ggsave(filename = "output/npt_kmplot.png", plot = npt_kmplot_gg, width = 10, height = 6)
+
+
+```
+
+```{r combined KM overall}
+combined_fit <- list(NPT = npt_fit, Resistant = resistant_fit)
+combined_kmplot <- ggsurvplot_combine(combined_fit,
+                                  data = data_resistant,
+                                  title = "Survival Curve for Resistant- vs. NPT- Pancreatic Cancer",
+                                  censor = TRUE,
+                                  xlab = "Time (Months)",
+                                  ylab = "Survival Probability",
+                                  conf.int = TRUE,
+                                  conf.int.style = "step",
+                                  conf.int.alpha = 0.2,
+                                  ggtheme = theme_minimal(),
+                                  surv.median.line = "hv",
+                                  xlim = c(0, 24),
+                                  break.time.by = 3,
+                                  breaks = seq(0, 24, by = 3),
+                                  palette = "lancet")
+combined_kmplot <- combined_kmplot + ggsurvfit::theme_ggsurvfit_KMunicate()
+
+combined_kmplot
+  
+combined_gg <- combined_kmplot$plot
+# Save the ggplot objects
+ggsave(filename = "output/resistant_v_npt_kmplot.png", plot = combined_gg, width = 10, height = 6)
+```
+
+
+```{r rename df}
+npt_df <- categorized_npt_pancreatic_df
+resistant_df <- categorized_resistant_pancreatic_df
+
+colnames(npt_df)
+```
+
+## Km Fit Curve
+
+
+
+```{r Resistant KMFit}
+# Define column names, variables, and cutoffs
+column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
+
+# Initialize a list to store survival fits for resistant Pancreatic Cancer 
+resistant_km_fits <- list()
+
+# Loop through variables for resistant Pancreatic Cancer
+for (col in column_names) {
+  # Construct formula with variable name extracted from column name
+  formula <- as.formula(paste("surv_obj_resistant ~", col))
+  
+  # Fit Kaplan-Meier survival curve
+  resistant_km_fit <- survfit(formula, data = resistant_df)
+  
+  # Store the fit in the list with a descriptive name
+  resistant_km_fits[[paste("resistant_km_fit_", col, sep = "")]] <- resistant_km_fit
+}
+
+# Access results using names like resistant_km_fit_Albumin_3.5 etc.
+print("Resistant Pancreatic Cancer Survival Fits:")
+print(resistant_km_fits)
+
+# Add a line of dashes for separation
+cat("\n", paste(rep("-", 40), collapse = ""), "\n")
+
+```
+```{r NPT KM Fit}
+# Define column names, variables, and cutoffs
+column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
+
+# Initialize a list to store survival fits for NPT Pancreatic Cancer 
+npt_km_fits <- list()
+
+# Loop through variables for NPT Pancreatic Cancer
+for (col in column_names) {
+  # Construct formula with variable name extracted from column name
+  formula <- as.formula(paste("surv_obj_npt ~", col))
+  
+  # Fit Kaplan-Meier survival curve
+  npt_km_fit <- survfit(formula, data = npt_df)
+  
+  # Store the fit in the list with a descriptive name
+  npt_km_fits[[paste("npt_km_fit_", col, sep = "")]] <- npt_km_fit
+}
+
+# Access results using names like resistant_km_fit_Albumin_3.5 etc.
+print("NPT- Pancreatic Cancer Survival Fits:")
+print(npt_km_fits)
+
+# Add a line of dashes for separation
+cat("\n", paste(rep("-", 40), collapse = ""), "\n")
+
+
+```
+##LogRank
+
+For Resistant Log-Rank
+
+1. **Albumin_3.5**:
+   - There's a significant difference in survival between patients with Albumin levels below 3.5 and those with levels equal to or above 3.5 (p = 2e-04). Patients with Albumin levels below 3.5 have a higher observed-to-expected ratio than those with levels equal to or above 3.5.
+
+2. **LMR_2.1**:
+   - There's no significant difference in survival between patients with LMR levels below 2.1 and those with levels equal to or above 2.1 (p = 0.09).
+
+3. **MON_0.8**:
+   - There's no significant difference in survival between patients with MON levels below 0.8 and those with levels equal to or above 0.8 (p = 0.08).
+
+4. **LY_1.5**:
+   - There's no significant difference in survival between patients with LY levels below 1.5 and those with levels equal to or above 1.5 (p = 0.2).
+
+5. **ANC_4**:
+   - There's no significant difference in survival between patients with ANC levels below 4 and those with levels equal to or above 4 (p = 0.1).
+
+6. **ANC_8**:
+   - There's a marginally significant difference in survival between patients with ANC levels below 8 and those with levels equal to or above 8 (p = 0.07). Patients with ANC levels below 8 have a higher observed-to-expected ratio than those with levels equal to or above 8.
+
+7. **NLR_3**:
+   - There's a significant difference in survival between patients with NLR levels below 3 and those with levels equal to or above 3 (p = 0.02). Patients with NLR levels below 3 have a higher observed-to-expected ratio than those with levels equal to or above 3.
+
+8. **NLR_5**:
+   - There's a significant difference in survival between patients with NLR levels below 5 and those with levels equal to or above 5 (p = 0.02). Patients with NLR levels below 5 have a higher observed-to-expected ratio than those with levels equal to or above 5.
+
+9. **PLT_300**:
+   - There's no significant difference in survival between patients with PLT levels below 300 and those with levels equal to or above 300 (p = 0.1).
+
+10. **Alk_Phos_135**:
+    - There's a significant difference in survival between patients with Alk_Phos levels below 135 and those with levels equal to or above 135 (p = 0.008). Patients with Alk_Phos levels below 135 have a higher observed-to-expected ratio than those with levels equal to or above 135.
+
+11. **Alk_Phos_200**:
+    - There's a marginally significant difference in survival between patients with Alk_Phos levels below 200 and those with levels equal to or above 200 (p = 0.06).
+
+12. **Age_60, Age_65, Age_70**:
+    - There's no significant difference in survival between patients in different age groups (p > 0.05 for all comparisons).
+
+13. **Prognostic_Score_ALAN_category**:
+    - There's a significant difference in survival among patients in different prognostic score categories (p = 0.001). Post-hoc pairwise comparisons show significant differences between all categories.
+
+These results suggest that factors like Albumin, ANC, NLR, and Alk_Phos levels might be associated with survival outcomes in patients with resistant pancreatic cancer, while other factors like LMR, MON, LY, PLT, and age may not have significant associations.
+
+```{r Resistant Log-Rank Test}
+ 
+# Define column names
+column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
+
+# Initialize an empty data frame to store log-rank test results for Resistant Pancreatic Cancer
+log_rank_results_df_resistant <- data.frame(
+  variable = character(),
+  cutoff = numeric(),
+  logrank_statistic = numeric(),
+  logrank_p_value = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Loop through variables for resistant Pancreatic Cancer
+for (col in column_names) {
+  if (grepl("^Prognostic_Score_ALAN_Category", col)) {
+    # Treat categorical variable as a factor
+    formula <- as.formula(paste("surv_obj_resistant ~ factor(", col, ")"))
+    
+    # Perform log-rank test
+    resistant_logrank <- survdiff(formula, data = resistant_df)
+    
+    # Store log-rank test results in data frame
+    log_rank_results_df_resistant <- rbind(log_rank_results_df_resistant, data.frame(
+      variable = col,
+      cutoff = "N/A",
+      logrank_statistic = resistant_logrank$chisq,
+      logrank_p_value = 1 - pchisq(resistant_logrank$chisq, df = 1),
+      stringsAsFactors = FALSE
+    ))
+    
+    # Print log-rank test information for Resistant Pancreatic Cancer
+    cat(rep("-", 20), "\n")
+    cat("Log-rank tests for Resistant Pancreatic Cancer -", col, "\n")
+    cat(rep("-", 20), "\n")
+    print(resistant_logrank)
+  } else {
+    # Extract cutoff from column name using regular expression
+    cutoff <- as.numeric(sub("^.*_(\\d+(\\.\\d+)?)$", "\\1", col))
+    formula <- as.formula(paste("surv_obj_resistant ~", col))
+  
+    # Perform log-rank test
+    resistant_logrank <- survdiff(formula, data = resistant_df)
+  
+    # Store log-rank test results in data frame
+    log_rank_results_df_resistant <- rbind(log_rank_results_df_resistant, data.frame(
+      variable = col,
+      cutoff = cutoff,
+      logrank_statistic = resistant_logrank$chisq,
+      logrank_p_value = 1 - pchisq(resistant_logrank$chisq, df = 1),
+      stringsAsFactors = FALSE
+    ))
+  
+    # Print log-rank test information for Resistant Pancreatic Cancer
+    cat(rep("-", 20), "\n")
+    cat("Log-rank tests for Resistant Pancreatic Cancer -", col, "\n")
+    cat(rep("-", 20), "\n")
+    print(resistant_logrank)
+  }
+}
+
+
+# Display log-rank test results in a table
+kable(log_rank_results_df_resistant, caption = "Log-rank Test Results for Resistant Pancreatic Cancer")
+
+```
+For NPT Log-Rank: 
+
+1. **Albumin_3.5**:
+   - There's a significant difference in survival between patients with Albumin levels below 3.5 and those with levels equal to or above 3.5 (p = 6e-04). Patients with Albumin levels below 3.5 have a higher observed-to-expected ratio than those with levels equal to or above 3.5.
+
+2. **LMR_2.1**:
+   - There's no significant difference in survival between patients with LMR levels below 2.1 and those with levels equal to or above 2.1 (p = 0.07).
+
+3. **MON_0.8**:
+   - There's a significant difference in survival between patients with MON levels below 0.8 and those with levels equal to or above 0.8 (p = 0.005). Patients with MON levels below 0.8 have a higher observed-to-expected ratio than those with levels equal to or above 0.8.
+
+4. **LY_1.5**:
+   - There's no significant difference in survival between patients with LY levels below 1.5 and those with levels equal to or above 1.5 (p = 0.4).
+
+5. **ANC_4**:
+   - There's no significant difference in survival between patients with ANC levels below 4 and those with levels equal to or above 4 (p = 0.2).
+
+6. **ANC_8**:
+   - There's a significant difference in survival between patients with ANC levels below 8 and those with levels equal to or above 8 (p = 0.03). Patients with ANC levels below 8 have a higher observed-to-expected ratio than those with levels equal to or above 8.
+
+7. **NLR_3**:
+   - There's no significant difference in survival between patients with NLR levels below 3 and those with levels equal to or above 3 (p = 0.3).
+
+8. **NLR_5**:
+   - There's no significant difference in survival between patients with NLR levels below 5 and those with levels equal to or above 5 (p = 0.2).
+
+9. **PLT_300**:
+   - There's no significant difference in survival between patients with PLT levels below 300 and those with levels equal to or above 300 (p = 0.9).
+
+10. **Alk_Phos_135**:
+   - There's no significant difference in survival between patients with Alk_Phos levels below 135 and those with levels equal to or above 135 (p = 0.4).
+
+11. **Alk_Phos_200**:
+   - There's no significant difference in survival between patients with Alk_Phos levels below 200 and those with levels equal to or above 200 (p = 0.4).
+
+12. **Age_60, Age_65, Age_70**:
+   - There's no significant difference in survival between patients in different age groups (p > 0.05 for all comparisons).
+
+13. **Prognostic_Score_ALAN_category**:
+   - There's a significant difference in survival among patients in different prognostic score categories (p = 8e-09). Post-hoc pairwise comparisons show significant differences between all categories.
+
+Overall, these results provide insights into the potential prognostic factors for survival in the "npt" dataset. Factors like Albumin, MON, and ANC levels seem to have significant associations with survival outcomes, while others like LMR, LY, NLR, PLT, Alk_Phos, and age may not be strongly associated.
+
+
+```{r NPT Log Rank}
+# Define column names for npt
+column_names_npt <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
+
+# Initialize an empty data frame to store log-rank test results for npt
+log_rank_results_df_npt <- data.frame(
+  variable = character(),
+  cutoff = numeric(),
+  logrank_statistic = numeric(),
+  logrank_p_value = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Loop through variables for npt
+for (col in column_names_npt) {
+  if (grepl("^Prognostic_Score_ALAN_Category", col)) {
+    # Treat categorical variable as a factor
+    formula <- as.formula(paste("surv_obj_npt ~ factor(", col, ")"))
+    
+    # Perform log-rank test
+    npt_logrank <- survdiff(formula, data = npt_df)
+    
+    # Store log-rank test results in data frame
+    log_rank_results_df_npt <- rbind(log_rank_results_df_npt, data.frame(
+      variable = col,
+      cutoff = "N/A",
+      logrank_statistic = npt_logrank$chisq,
+      logrank_p_value = 1 - pchisq(npt_logrank$chisq, df = 1),
+      stringsAsFactors = FALSE
+    ))
+    
+    # Print log-rank test information for npt
+    cat(rep("-", 20), "\n")
+    cat("Log-rank tests for npt -", col, "\n")
+    cat(rep("-", 20), "\n")
+    print(npt_logrank)
+  } else {
+    # Extract cutoff from column name using regular expression
+    cutoff <- as.numeric(sub("^.*_(\\d+(\\.\\d+)?)$", "\\1", col))
+    formula <- as.formula(paste("surv_obj_npt ~", col))
+  
+    # Perform log-rank test
+    npt_logrank <- survdiff(formula, data = npt_df)
+  
+    # Store log-rank test results in data frame
+    log_rank_results_df_npt <- rbind(log_rank_results_df_npt, data.frame(
+      variable = col,
+      cutoff = cutoff,
+      logrank_statistic = npt_logrank$chisq,
+      logrank_p_value = 1 - pchisq(npt_logrank$chisq, df = 1),
+      stringsAsFactors = FALSE
+    ))
+  
+    # Print log-rank test information for npt
+    cat(rep("-", 20), "\n")
+    cat("Log-rank tests for npt -", col, "\n")
+    cat(rep("-", 20), "\n")
+    print(npt_logrank)
+  }
+}
+
+# Display log-rank test results for npt in a table
+kable(log_rank_results_df_npt, caption = "Log-rank Test Results for npt- pancreatic cancer")
+
+
+```
+### Pairwise LogRank
+
+These results are pairwise log-rank tests comparing different levels of the variable "Prognostic_Score_ALAN_category" within the "Resistant" data. Let's interpret each pairwise comparison:
+
+1. **Pairwise log-rank test between 1 and 2:**
+   - Chisq: 6.2 on 1 degree of freedom, p-value = 0.01
+   - Interpretation: There is a statistically significant difference in survival between patients with a prognostic score of 1 and those with a score of 2.
+
+2. **Pairwise log-rank test between 1 and 3:**
+   - Chisq: 9.8 on 1 degree of freedom, p-value = 0.002
+   - Interpretation: There is a statistically significant difference in survival between patients with a prognostic score of 1 and those with a score of 3-4.
+
+3. **Pairwise log-rank test between 2 and 3:**
+   - Chisq: 3.8 on 1 degree of freedom, p-value = 0.05
+   - Interpretation: There is a marginally significant difference in survival between patients with a prognostic score of 2 and those with a score of 3-4.
+
+In summary, these results indicate that the prognostic score categories have significant or marginally significant differences in survival among the patients with resistant pancreatic cancer.
+
+```{r Resistant Pairwise Logrank}
+# Get unique levels of Prognostic_Score_ALAN_category
+levels_resistant <- unique(resistant_df$Prognostic_Score_ALAN_category)
+
+# Initialize a list to store pairwise log-rank test results
+pairwise_results_resistant <- list()
+
+# Perform pairwise log-rank tests
+for (i in 1:(length(levels_resistant)-1)) {
+  for (j in (i+1):length(levels_resistant)) {
+    level1 <- levels_resistant[i]
+    level2 <- levels_resistant[j]
+    cat("Pairwise log-rank test between", level1, "and", level2, "\n")
+    formula <- as.formula(paste("Surv(time_diff_months, Event_Status) ~ Prognostic_Score_ALAN_category"))
+    pairwise_test <- survdiff(formula, subset(resistant_df, Prognostic_Score_ALAN_category %in% c(level1, level2)))
+    print(pairwise_test)
+    cat("\n")
+    # Store the pairwise test result
+    pairwise_results_resistant[[paste("pairwise_test_", level1, "_vs_", level2, sep = "")]] <- pairwise_test
+  }
+}
+
+# Print the results
+print("Pairwise log-rank test results for resistant pancreatic cancer:")
+print(pairwise_results_resistant)
+
+```
+
+
+For NPT Pairwise
+
+The pairwise log-rank test results provide information about the differences in survival distributions between different categories of the `Prognostic_Score_ALAN_category` variable in the "npt" dataset. Here's what the results tell us:
+
+1. Pairwise test between levels 2 and 1:
+   - The chi-square statistic is 0, indicating that there is no significant difference in survival distributions between category 2 and category 1 of the `Prognostic_Score_ALAN_category` variable.
+   - The p-value is 0.9, suggesting that there is no evidence to reject the null hypothesis of no difference in survival distributions between the two categories.
+
+2. Pairwise test between levels 2 and 3:
+   - The chi-square statistic is 22.4, indicating a significant difference in survival distributions between category 2 and category 3 of the `Prognostic_Score_ALAN_category` variable.
+   - The p-value is very small (2e-06), suggesting strong evidence to reject the null hypothesis of no difference in survival distributions between the two categories.
+
+3. Pairwise test between levels 1 and 3:
+   - The chi-square statistic is 21.9, indicating a significant difference in survival distributions between category 1 and category 3 of the `Prognostic_Score_ALAN_category` variable.
+   - The p-value is very small (3e-06), suggesting strong evidence to reject the null hypothesis of no difference in survival distributions between the two categories.
+
+In summary, these pairwise comparisons reveal significant differences in survival distributions between certain categories of the `Prognostic_Score_ALAN_category` variable in the "npt" dataset. This information could be valuable for understanding the impact of different prognostic scores on survival outcomes in the dataset.
+
+
+
+```{r NPT Pairwise Logrank}
+
+# Get unique levels of Prognostic_Score_ALAN_category
+levels_npt <- unique(npt_df$Prognostic_Score_ALAN_category)
+
+# Initialize a list to store pairwise log-rank test results
+pairwise_results_npt <- list()
+
+# Perform pairwise log-rank tests
+for (i in 1:(length(levels_npt)-1)) {
+  for (j in (i+1):length(levels_npt)) {
+    level1 <- levels_npt[i]
+    level2 <- levels_npt[j]
+    cat("Pairwise log-rank test between", level1, "and", level2, "\n")
+    formula <- as.formula(paste("Surv(time_diff_months, Event_Status) ~ Prognostic_Score_ALAN_category"))
+    pairwise_test <- survdiff(formula, subset(npt_df, Prognostic_Score_ALAN_category %in% c(level1, level2)))
+    print(pairwise_test)
+    cat("\n")
+    # Store the pairwise test result
+    pairwise_results_npt[[paste("pairwise_test_", level1, "_vs_", level2, sep = "")]] <- pairwise_test
+  }
+}
+
+# Print the results
+print("Pairwise log-rank test results for npt- pancreatic cancer:")
+print(pairwise_results_npt)
+
+
+```
+
+##Cox Proportional Hazards
+
+```{r Resistant Cox Proportional Hazards}
+# Initialize lists to store Cox models, p-values, and hazard ratios for Resistant Pancreatic Cancer
+cox_p_values_list_resistant <- list()
+cox_hazard_ratios_list_resistant <- list()
+
+# Loop through variables for Resistant Pancreatic Cancer
+for (col in column_names) {
+  
+   # Extract cutoff and variable name using regular expressions
+  cutoff <- as.numeric(sub("^.*_(\\d+(\\.\\d+)?)$", "\\1", col))
+  variable <- sub("^(.*)_\\d+(\\.\\d+)?$", "\\1", col)
+  
+  # Create formula for Cox model
+  formula_resistant <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
+    
+    # Fit Cox model
+    cox_model_resistant <- coxph(formula_resistant, data = resistant_df)
+    
+    # Print Cox model for Resistant Pancreatic Cancer
+    cat(rep("-", 30), "\n")
+    cat("Cox Proportional Hazards for Resistant Pancreatic Cancer  -", col, "\n")
+    cat(rep("-", 30), "\n")
+    print(cox_model_resistant)
+    
+    # Create properly formatted column name for p-value extraction
+    coef_name_resistant <- paste(col, ">= ", cutoff, sep = "")
+    
+    # Check if the variable is Prognostic_Score_ALAN_category
+    if (variable == "Prognostic_Score_ALAN_category") {
+      # Treat categorical variable as a factor
+      formula_resistant <- as.formula(paste("Surv(time_diff_months, Event_Status) ~ factor(", col, ")"))
+      
+      # Perform Cox model for Prognostic_Score_ALAN_category
+      cox_model_resistant <- coxph(formula_resistant, data = resistant_df)
+      
+      # Extract p-value
+      cox_p_value_resistant <- as.numeric(format(summary(cox_model_resistant)$coefficients[, "Pr(>|z|)"], scientific = TRUE, digits = 3))
+      
+      # Print p-value for Resistant Pancreatic Cancer
+      cat("P-value:", cox_p_value_resistant, "\n")
+    } else {
+      # Extract p-value
+      cox_p_value_resistant <- as.numeric(format(summary(cox_model_resistant)$coefficients[coef_name_resistant, "Pr(>|z|)"], scientific = TRUE, digits = 3))
+      
+      # Print p-value for Resistant Pancreatic Cancer
+      cat("P-value:", cox_p_value_resistant, "\n")
+    }
+    
+    # Extract Hazard Ratio
+    cox_hazard_ratio_resistant <- exp(coef(cox_model_resistant))
+    
+    # Print Hazard Ratio for Resistant Pancreatic Cancer
+    cat("Hazard Ratio:", cox_hazard_ratio_resistant, "\n")
+    
+    # Append the results to respective lists for Resistant Pancreatic Cancer
+    cox_p_values_list_resistant[[length(cox_p_values_list_resistant) + 1]] <- c(col, cutoff, cox_p_value_resistant)
+    cox_hazard_ratios_list_resistant[[length(cox_hazard_ratios_list_resistant) + 1]] <- c(col, cutoff, cox_hazard_ratio_resistant)
+    
+}
+
+# Convert lists to data frames for Resistant Pancreatic Cancer
+cox_p_values_df_resistant <- as.data.frame(do.call(rbind, cox_p_values_list_resistant), stringsAsFactors = FALSE)
+colnames(cox_p_values_df_resistant) <- c("column_names", "cutoff", "cox_p_value")
+cox_p_values_df_resistant$cutoff <- as.numeric(cox_p_values_df_resistant$cutoff)
+cox_p_values_df_resistant$cox_p_value <- as.numeric(cox_p_values_df_resistant$cox_p_value)
+
+cox_hazard_ratios_df_resistant <- as.data.frame(do.call(rbind, cox_hazard_ratios_list_resistant), stringsAsFactors = FALSE)
+colnames(cox_hazard_ratios_df_resistant) <- c("column_names", "cutoff", "cox_hazard_ratio")
+cox_hazard_ratios_df_resistant$cutoff <- as.numeric(cox_hazard_ratios_df_resistant$cutoff)
+cox_hazard_ratios_df_resistant$cox_hazard_ratio <- as.numeric(cox_hazard_ratios_df_resistant$cox_hazard_ratio)
+
+# Merge the two data frames for Resistant Pancreatic Cancer
+coxph_df_resistant <- merge(cox_p_values_df_resistant, cox_hazard_ratios_df_resistant, by = c("column_names", "cutoff"), sort = FALSE)
+
+# Select only the relevant columns
+coxph_df_resistant <- coxph_df_resistant[, c("column_names", "cutoff", "cox_p_value", "cox_hazard_ratio")]
+
+# Print the combined data frame for Resistant Pancreatic Cancer using kable
+kable(coxph_df_resistant, caption = "Cox Proportional Hazards Results for Resistant Pancreatic Cancer")
+
+# Print the structure of the combined data frame for Resistant Pancreatic Cancer
+str(coxph_df_resistant)
+
+```
+
+```{r NPT Cox Proportional Hazard}
+# Initialize lists to store Cox models, p-values, and hazard ratios for NPT
+cox_p_values_list_npt <- list()
+cox_hazard_ratios_list_npt <- list()
+
+# Loop through variables for NPT
+for (col in column_names) {
+  
+   # Extract cutoff and variable name using regular expressions
+  cutoff <- as.numeric(sub("^.*_(\\d+(\\.\\d+)?)$", "\\1", col))
+  variable <- sub("^(.*)_\\d+(\\.\\d+)?$", "\\1", col)
+  
+  # Create formula for Cox model
+  formula_npt <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
+    
+    # Fit Cox model
+    cox_model_npt <- coxph(formula_npt, data = npt_df)
+    
+    # Print Cox model for NPT
+    cat(rep("-", 30), "\n")
+    cat("Cox Proportional Hazards for NPT -", col, "\n")
+    cat(rep("-", 30), "\n")
+    print(cox_model_npt)
+    
+    # Create properly formatted column name for p-value extraction
+    coef_name_npt <- paste(col, ">= ", cutoff, sep = "")
+    
+    # Check if the variable is Prognostic_Score_ALAN_category
+    if (variable == "Prognostic_Score_ALAN_category") {
+      # Treat categorical variable as a factor
+      formula_npt <- as.formula(paste("Surv(time_diff_months, Event_Status) ~ factor(", col, ")"))
+      
+      # Perform Cox model for Prognostic_Score_ALAN_category
+      cox_model_npt <- coxph(formula_npt, data = npt_df)
+      
+      # Extract p-value
+      cox_p_value_npt <- as.numeric(format(summary(cox_model_npt)$coefficients[, "Pr(>|z|)"], scientific = TRUE, digits = 3))
+      
+      # Print p-value for NPT
+      cat("P-value:", cox_p_value_npt, "\n")
+    } else {
+      # Extract p-value
+      cox_p_value_npt <- as.numeric(format(summary(cox_model_npt)$coefficients[coef_name_npt, "Pr(>|z|)"], scientific = TRUE, digits = 3))
+      
+      # Print p-value for NPT
+      cat("P-value:", cox_p_value_npt, "\n")
+    }
+    
+    # Extract Hazard Ratio
+    cox_hazard_ratio_npt <- exp(coef(cox_model_npt))
+    
+    # Print Hazard Ratio for NPT
+    cat("Hazard Ratio:", cox_hazard_ratio_npt, "\n")
+    
+    # Append the results to respective lists for NPT
+    cox_p_values_list_npt[[length(cox_p_values_list_npt) + 1]] <- c(col, cutoff, cox_p_value_npt)
+    cox_hazard_ratios_list_npt[[length(cox_hazard_ratios_list_npt) + 1]] <- c(col, cutoff, cox_hazard_ratio_npt)
+    
+}
+
+# Convert lists to data frames for NPT
+cox_p_values_df_npt <- as.data.frame(do.call(rbind, cox_p_values_list_npt), stringsAsFactors = FALSE)
+colnames(cox_p_values_df_npt) <- c("column_names", "cutoff", "cox_p_value")
+cox_p_values_df_npt$cutoff <- as.numeric(cox_p_values_df_npt$cutoff)
+cox_p_values_df_npt$cox_p_value <- as.numeric(cox_p_values_df_npt$cox_p_value)
+
+cox_hazard_ratios_df_npt <- as.data.frame(do.call(rbind, cox_hazard_ratios_list_npt), stringsAsFactors = FALSE)
+colnames(cox_hazard_ratios_df_npt) <- c("column_names", "cutoff", "cox_hazard_ratio")
+cox_hazard_ratios_df_npt$cutoff <- as.numeric(cox_hazard_ratios_df_npt$cutoff)
+cox_hazard_ratios_df_npt$cox_hazard_ratio <- as.numeric(cox_hazard_ratios_df_npt$cox_hazard_ratio)
+
+# Merge the two data frames for NPT
+coxph_df_npt <- merge(cox_p_values_df_npt, cox_hazard_ratios_df_npt, by = c("column_names", "cutoff"), sort = FALSE)
+
+# Select only the relevant columns
+coxph_df_npt <- coxph_df_npt[, c("column_names", "cutoff", "cox_p_value", "cox_hazard_ratio")]
+
+# Print the combined data frame for NPT using kable
+kable(coxph_df_npt, caption = "Cox Proportional Hazards Results for NPT- Pancreatic Cancer")
+
+# Print the structure of the combined data frame for NPT
+str(coxph_df_npt)
+
+
+```
+
+
+
+
+##Schoenfeld Residuals Test
+
+```{r Resistant Schoenfeld Test}
+# Initialize lists to store Schoenfeld test results and plots for Resistant Pancreatic Cancer
+schoenfeld_results_list_resistant <- list()
+schoenfeld_plots_list_resistant <- list()
+
+# Loop through variables for Resistant Pancreatic Cancer
+for (col in column_names) {
+  # Create formula for Cox model
+  formula_resistant <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
+  
+  # Fit Cox model for Resistant Pancreatic Cancer
+  cox_model_resistant <- coxph(formula_resistant, data = resistant_df)
+  
+  # Perform Schoenfeld test for Resistant Pancreatic Cancer
+  schoenfeld_test_resistant <- cox.zph(cox_model_resistant)
+  
+  # Print Schoenfeld test results for Resistant Pancreatic Cancer
+  cat(rep("-", 45), "\n")
+  cat("Schoenfeld Test for Resistant Pancreatic Cancer -", col, "\n")
+  cat(rep("-", 45), "\n")
+  print(schoenfeld_test_resistant)
+  
+  # Store Schoenfeld test result for Resistant Pancreatic Cancer in the list
+  schoenfeld_results_list_resistant[[paste("schoenfeld_test", tolower(col), sep = "_")]] <- schoenfeld_test_resistant
+  
+  # Plot Schoenfeld residuals using ggcoxzph for Resistant Pancreatic Cancer
+  schoenfeld_plot_resistant <- ggcoxzph(schoenfeld_test_resistant, caption = paste("Schoenfeld Plot of Resistant Pancreatic Cancer for residuals of", col))
+  
+  # Store Schoenfeld plot for Resistant Pancreatic Cancer in the list
+  schoenfeld_plots_list_resistant[[paste("schoenfeld_plot", tolower(col), sep = "_")]] <- schoenfeld_plot_resistant
+  
+  # Print the plot for Resistant Pancreatic Cancer
+  print(schoenfeld_plot_resistant)
+}
+
+# Access results using names like schoenfeld_test_ly etc. for Resistant Pancreatic Cancer
+print(schoenfeld_results_list_resistant)
+print(schoenfeld_plots_list_resistant)
+
+```
+
+
+```{r NPT Schoenfeld Test}
+
+# Initialize lists to store Schoenfeld test results and plots for No Prior Treatment Pancreatic Cancer (NPT)
+schoenfeld_results_list_npt <- list()
+schoenfeld_plots_list_npt <- list()
+
+# Loop through variables for NPT
+for (col in column_names) {
+  # Create formula for Cox model
+  formula_npt <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
+  
+  # Fit Cox model for NPT
+  cox_model_npt <- coxph(formula_npt, data = npt_df)
+  
+  # Perform Schoenfeld test for NPT
+  schoenfeld_test_npt <- cox.zph(cox_model_npt)
+  
+  # Print Schoenfeld test results for NPT
+  cat(rep("-", 45), "\n")
+  cat("Schoenfeld Test for NPT- Pancreatic Cancer", col, "\n")
+  cat(rep("-", 45), "\n")
+  print(schoenfeld_test_npt)
+  
+  # Store Schoenfeld test result for NPT in the list
+  schoenfeld_results_list_npt[[paste("schoenfeld_test", tolower(col), sep = "_")]] <- schoenfeld_test_npt
+  
+  # Plot Schoenfeld residuals using ggcoxzph for NPT
+  schoenfeld_plot_npt <- ggcoxzph(schoenfeld_test_npt, caption = paste("Schoenfeld Plot of No Prior Treatment Pancreatic Cancer for residuals of", col))
+  
+  # Store Schoenfeld plot for NPT in the list
+  schoenfeld_plots_list_npt[[paste("schoenfeld_plot", tolower(col), sep = "_")]] <- schoenfeld_plot_npt
+  
+  # Print the plot for NPT
+  print(schoenfeld_plot_npt)
+}
+
+# Access results using names like schoenfeld_test_ly etc. for NPT
+print(schoenfeld_results_list_npt)
+print(schoenfeld_plots_list_npt)
+
+
+```
+
+
+#KM Plots
+
+```{r legend labels}
+# Define the column names
+column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
+
+# Create a separate list of titles for legend labels
+legend_titles <- c("Albumin ", "LMR ", "MON ", "LY ", "ANC ", "ANC ", "NLR ", "NLR ", "PLT ", "Alk_Phos ", "Alk_Phos ", "Age ", "Age ", "Age ", "ALAN_Score:")
+
+
+
+# Function to create legend labels for each variable
+create_legend_labels <- function(df, column_names, legend_titles) {
+  legend_labels <- list()
+  for (i in seq_along(column_names)) {
+    variable <- column_names[i]
+    title <- legend_titles[i]
+    levels <- levels(df[[variable]])
+    if (length(levels) == 2) {
+      label1 <- paste(title, levels[1], " (N =", sum(df[[variable]] == levels[1]), ")", sep = "")
+      label2 <- paste(title, levels[2], " (N =", sum(df[[variable]] == levels[2]), ")", sep = "")
+      legend_labels[[variable]] <- c(label1, label2)
+    } else if (length(levels) == 3) {
+      label1 <- paste(title, levels[1], " (N =", sum(df[[variable]] == levels[1]), ")", sep = "")
+      label2 <- paste(title, levels[2], " (N =", sum(df[[variable]] == levels[2]), ")", sep = "")
+      label3 <- paste(title, levels[3], " (N =", sum(df[[variable]] == levels[3]), ")", sep = "")
+      legend_labels[[variable]] <- c(label1, label2, label3)
+    } else {
+      labels <- paste(title, levels, " (N =", table(df[[variable]]), ")", sep = "")
+      legend_labels[[variable]] <- labels
+    }
+  }
+  return(legend_labels)
+}
+
+
+# Call the function to create legend labels for each variable
+legend_labels_resistant <- create_legend_labels(resistant_df, column_names, legend_titles)
+
+legend_labels_npt <- create_legend_labels(npt_df, column_names, legend_titles) 
+
+
+print(legend_labels_resistant)
+print(legend_labels_npt)
+```
+```{r create our models}
+# Define a function to fit Cox models for each variable in a data frame
+fit_cox_models <- function(data, column_names) {
+  cox_models <- list()
+  for (col in column_names) {
+    formula <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
+    cox_model <- coxph(formula, data = data)
+    cox_models[[col]] <- cox_model
+  }
+  return(cox_models)
+}
+
+# Define a function to fit Kaplan-Meier models for each variable in a data frame
+fit_km_models <- function(data, column_names) {
+  km_models <- list()
+  for (col in column_names) {
+    formula <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
+    km_model <- survfit(formula, data = data)
+    km_models[[col]] <- km_model
+  }
+  return(km_models)
+}
+
+# Fit Cox models for NPT data frame
+cox_models_npt <- fit_cox_models(npt_df, column_names)
+
+# Fit Cox models for Resistant data frame
+cox_models_resistant <- fit_cox_models(resistant_df, column_names)
+
+# Fit Kaplan-Meier models for NPT data frame
+km_models_npt <- fit_km_models(npt_df, column_names)
+
+# Fit Kaplan-Meier models for Resistant data frame
+km_models_resistant <- fit_km_models(resistant_df, column_names)
+```
+
+```{r check logrank and HR}
+# Print the Log-Rank P-value and Hazard Ratio for each variable
+cat(rep("-", 40), "\n")
+print("Log-Rank pvalue and HR for NPT Pancreatic Cancer")
+cat(rep("-", 40), "\n")
+for (col in names(km_models_npt)) {
+  logrank_p_npt <- log_rank_results_df_npt$logrank_p_value[log_rank_results_df_npt$variable == col]
+  cox_HR_npt <- coxph_df_npt$cox_hazard_ratio[coxph_df_npt$column_names == col]
+  cat("Variable:", col, "\n")
+  cat("Log-Rank P-value:", logrank_p_npt, "\n")
+  cat("Hazard Ratio:", cox_HR_npt, "\n")
+}
+
+
+# Print the Log-Rank P-value and Hazard Ratio for each variable
+cat(rep("-", 40), "\n")
+print("Log-Rank pvalue and HR for Resistant Pancreatic Cancer")
+cat(rep("-", 40), "\n")
+for (col in names(km_models_resistant)) {
+  logrank_p_resistant <- log_rank_results_df_resistant$logrank_p_value[log_rank_results_df_resistant$variable == col]
+  cox_HR_resistant <- coxph_df_resistant$cox_hazard_ratio[coxph_df_resistant$column_names == col]
+  cat("Variable:", col, "\n")
+  cat("Log-Rank P-value:", logrank_p_resistant, "\n")
+  cat("Hazard Ratio:", cox_HR_resistant, "\n")
+}
+
+
+
+```
+
+
+
+
+```{r NPT KM Plot }
+# Open a PDF device
+pdf("output/npt_km_plots.pdf")
+
+# Loop through each variable and save its plot on a separate page
+for (variable in variables_of_interest) {
+  legend_label <- legend_labels_npt[[variable]]
+  logrank_p <- log_rank_results_df_npt$logrank_p_value[log_rank_results_df_npt$variable == variable]
+  cox_HR <- coxph_df_npt$cox_hazard_ratio[coxph_df_npt$column_names == variable]
+  
+  # Extract the variable values from the dataframe
+  variable_values <- npt_df[[variable]]
+  
+  # Make sure the event status is logical
+  npt_df$Event_Status <- as.logical(npt_df$Event_Status)
+  
+  # Create the survival object
+  surv_obj <- Surv(time = npt_df$time_diff_months, event = npt_df$Event_Status)
+  
+  # Fit Kaplan-Meier model
+  km_fit <- survfit(surv_obj ~ variable_values, data = npt_df)
+  
+  # Convert p-value and hazard ratio to scientific notation with 3 significant figures
+  logrank_p <- format(logrank_p, scientific = TRUE, digits = 3)
+  cox_HR <- format(cox_HR, scientific = TRUE, digits = 3)
+  
+  # Create Kaplan-Meier plot
+  km_plot <- ggsurvplot(
+    km_fit,
+    data = npt_df,
+    title = paste("Kaplan-Meier Curve of NPT- Pancreatic Cancer by", variable),
+    censor = TRUE,
+    xlab = "Time (Months)",
+    ylab = "Survival Probability",
+    conf.int = TRUE,
+    conf.int.style = "step",
+    conf.int.alpha = 0.2,
+    surv.median.line = "hv",
+    xlim = c(0, 24),
+    break.time.by = 3,
+    breaks = seq(0, 24, by = 3),
+    surv.scale = "percent",
+    legend.labs = c(legend_label[1], legend_label[2]),  # Assuming two groups for now
+    palette = "lancet"
+  )
+  
+  # Add annotation to the plot
+  km_plot <- km_plot$plot + annotate(
+    "text", x = 0, y = 0.05, 
+    label = paste("Log-Rank p-value:", logrank_p, "\nHazard Ratio:", cox_HR), 
+    hjust = 0, vjust = 0
+  )
+  
+  # Apply custom theme
+  km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
+  
+  # Save the plot on a separate page
+  print(km_plot)
+}
+
+# Close the PDF device
+dev.off()
+
+
+```
+```{r Resistant KM Plots}
+# Open a PDF device
+pdf("output/resistant_km_plots.pdf")
+
+# Define the variables of interest for the resistant dataset
+variables_of_interest_resistant <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", 
+                                     "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", 
+                                     "Age_60", "Age_65", "Age_70")
+
+for (variable_resistant in variables_of_interest_resistant) {
+  legend_label_resistant <- legend_labels_resistant[[variable_resistant]]
+  logrank_p_resistant <- log_rank_results_df_resistant$logrank_p_value[log_rank_results_df_resistant$variable == variable_resistant]
+  cox_HR_resistant <- coxph_df_resistant$cox_hazard_ratio[coxph_df_resistant$column_names == variable_resistant]
+  
+  # Extract the variable values from the resistant dataframe
+  variable_values_resistant <- resistant_df[[variable_resistant]]
+  
+  # Make sure the event status is logical
+  resistant_df$Event_Status <- as.logical(resistant_df$Event_Status)
+  
+  # Create the survival object for the resistant dataset
+  surv_obj_resistant <- Surv(time = resistant_df$time_diff_months, event = resistant_df$Event_Status)
+  
+  # Fit Kaplan-Meier model for the resistant dataset
+  km_fit_resistant <- survfit(surv_obj_resistant ~ variable_values_resistant, data = resistant_df)
+  
+  # Convert p-value and hazard ratio to scientific notation with 3 significant figures
+  logrank_p_resistant <- format(logrank_p_resistant, scientific = TRUE, digits = 3)
+  cox_HR_resistant <- format(cox_HR_resistant, scientific = TRUE, digits = 3)
+  
+  # Create Kaplan-Meier plot for the resistant dataset
+  km_plot_resistant <- ggsurvplot(
+    km_fit_resistant,
+    data = resistant_df,
+    title = paste("Kaplan-Meier Curve of Resistant Pancreatic Cancer by", variable_resistant),
+    censor = TRUE,
+    xlab = "Time (Months)",
+    ylab = "Survival Probability",
+    conf.int = TRUE,
+    conf.int.style = "step",
+    conf.int.alpha = 0.2,
+    surv.median.line = "hv",
+    xlim = c(0, 24),
+    break.time.by = 3,
+    breaks = seq(0, 24, by = 3),
+    surv.scale = "percent",
+    legend.labs = legend_label_resistant,  # Assuming two groups for now
+    palette = "lancet"
+  )
+  
+  # Add annotation to the resistant dataset plot
+  km_plot_resistant <- km_plot_resistant$plot + annotate(
+    "text", x = 0, y = 0.05, 
+    label = paste("Log-Rank p-value:", logrank_p_resistant, "\nHazard Ratio:", cox_HR_resistant), 
+    hjust = 0, vjust = 0
+  )
+  
+  # Apply custom theme
+  km_plot_resistant <- km_plot_resistant + ggsurvfit::theme_ggsurvfit_KMunicate()
+  
+  # Display the plot for the resistant dataset
+  print(km_plot_resistant)
+}
+# Close the PDF device
+dev.off()
+
+
+```
+
+
+```{r plot ALAN Score NPT}
+# Define the variable of interest
+variable <- "Prognostic_Score_ALAN_category"
+
+# Extract legend labels for the variable
+legend_label <- legend_labels_npt[[variable]]
+
+# Extract Log-Rank p-value and Hazard Ratio for the variable
+logrank_p <- log_rank_results_df_npt$logrank_p_value[log_rank_results_df_npt$variable == variable]
+cox_HR <- coxph_df_npt$cox_hazard_ratio[coxph_df_npt$column_names == variable]
+
+# Extract variable values from the dataframe
+variable_values <- npt_df[[variable]]
+
+# Create the survival object
+surv_obj <- Surv(time = npt_df$time_diff_months, event = npt_df$Event_Status)
+
+# Fit Kaplan-Meier model
+km_fit <- survfit(surv_obj ~ variable_values, data = npt_df)
+
+# Convert p-value and hazard ratio to scientific notation with 3 significant figures
+logrank_p <- format(logrank_p, scientific = TRUE, digits = 3)
+cox_HR <- format(cox_HR, scientific = TRUE, digits = 3)
+
+# Create Kaplan-Meier plot
+km_plot <- ggsurvplot(
+  km_fit,
+  data = npt_df,
+  title = paste("Kaplan-Meier Curve of NPT- Pancreatic Cancer by ALAN Score"),
+  censor = TRUE,
+  xlab = "Time (Months)",
+  ylab = "Survival Probability",
+  conf.int = TRUE,
+  conf.int.style = "step",
+  conf.int.alpha = 0.2,
+  surv.median.line = "hv",
+  xlim = c(0, 24),
+  break.time.by = 3,
+  breaks = seq(0, 24, by = 3),
+  surv.scale = "percent",
+  legend.labs = legend_label,  # Assuming three groups for "Prognostic_Score_ALAN_category"
+  palette = "lancet"
+)
+
+# Add annotation to the plot
+km_plot <- km_plot$plot + annotate(
+  "text", x = 0, y = 0.05, 
+  label = paste("Log-Rank p-value:", logrank_p, "\nHazard Ratio:", cox_HR), 
+  hjust = 0, vjust = 0
+)
+
+# Apply custom theme
+km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
+
+# Display the plot
+print(km_plot)
+
+
+```
+```{r plot ALAN score resistant}
+# Define the variable of interest for the resistant dataset
+variable_resistant <- "Prognostic_Score_ALAN_category"
+
+# Extract legend labels for the variable
+legend_label_resistant <- legend_labels_resistant[[variable_resistant]]
+
+# Extract Log-Rank p-value and Hazard Ratio for the variable
+logrank_p_resistant <- log_rank_results_df_resistant$logrank_p_value[log_rank_results_df_resistant$variable == variable_resistant]
+cox_HR_resistant <- coxph_df_resistant$cox_hazard_ratio[coxph_df_resistant$column_names == variable_resistant]
+
+# Extract variable values from the resistant dataframe
+variable_values_resistant <- resistant_df[[variable_resistant]]
+
+# Create the survival object for the resistant dataset
+surv_obj_resistant <- Surv(time = resistant_df$time_diff_months, event = resistant_df$Event_Status)
+
+# Fit Kaplan-Meier model for the resistant dataset
+km_fit_resistant <- survfit(surv_obj_resistant ~ variable_values_resistant, data = resistant_df)
+
+# Convert p-value and hazard ratio to scientific notation with 3 significant figures
+logrank_p_resistant <- format(logrank_p_resistant, scientific = TRUE, digits = 3)
+cox_HR_resistant <- format(cox_HR_resistant, scientific = TRUE, digits = 3)
+
+# Create Kaplan-Meier plot for the resistant dataset
+km_plot_resistant <- ggsurvplot(
+  km_fit_resistant,
+  data = resistant_df,
+  title = paste("Kaplan-Meier Curve of Resistant Pancreatic Cancer by ALAN Score"),
+  censor = TRUE,
+  xlab = "Time (Months)",
+  ylab = "Survival Probability",
+  conf.int = TRUE,
+  conf.int.style = "step",
+  conf.int.alpha = 0.2,
+  surv.median.line = "hv",
+  xlim = c(0, 24),
+  break.time.by = 3,
+  breaks = seq(0, 24, by = 3),
+  surv.scale = "percent",
+  legend.labs = legend_label_resistant,  # Assuming three groups for "Prognostic_Score_ALAN_category"
+  palette = "lancet"
+)
+
+# Add annotation to the resistant dataset plot
+km_plot_resistant <- km_plot_resistant$plot + annotate(
+  "text", x = 0, y = 0.05, 
+  label = paste("Log-Rank p-value:", logrank_p_resistant, "\nHazard Ratio:", cox_HR_resistant), 
+  hjust = 0, vjust = 0
+)
+
+# Apply custom theme
+km_plot_resistant <- km_plot_resistant + ggsurvfit::theme_ggsurvfit_KMunicate()
+
+# Display the plot for the resistant dataset
+print(km_plot_resistant)
+
+```
+
