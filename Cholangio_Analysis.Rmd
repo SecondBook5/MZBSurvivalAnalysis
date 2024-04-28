@@ -18,7 +18,7 @@ rm(list = ls())
 setwd("C:/Users/ajboo/BookAbraham/RProjects/SurvivalAnalysis")
 
 # Define the output directory path
-output_dir <- "output"
+output_dir <- "output/Cholangio_Output"
 
 # Create the output directory if it doesn't exist
 if (!dir.exists(output_dir)) {
@@ -81,8 +81,8 @@ def load_and_convert_data(file_path, cancer_type):
     
     return cancer_df
 
-# Load and preprocess data for Pancreatic Cancer
-pancreatic_df = load_and_convert_data("data/Organized_Bruckner_Data.csv", "Pancreatic Cancer")
+# Load and preprocess data for Cholangiocarcinoma
+cholangio_df = load_and_convert_data("data/Organized_Bruckner_Data.csv", "Cholangiocarcinoma")
 
 # Load and preprocess data for Ovarian Cancer
 #ovarian_df = load_and_convert_data("data/Organized_Bruckner_Data.csv", "Ovarian Cancer")
@@ -110,7 +110,7 @@ def subset_by_resistant(df, resistant_value):
 
 # Subset data frames for Resistant cases
 #resistant_ovarian_df = subset_by_resistant(ovarian_df, "Resistant")
-#resistant_pancreatic_df = subset_by_resistant(pancreatic_df, "Resistant")
+#resistant_cholangio_df = subset_by_resistant(cholangio_df, "Resistant")
 
 
 ```
@@ -122,7 +122,7 @@ def subset_by_cancer_status(df, cancer_status):
     
     Parameters:
         df (pd.DataFrame): The DataFrame to subset.
-        cancer_status (str): The value to subset by (e.g., 'NPT- Pancreatic Cancer').
+        cancer_status (str): The value to subset by (e.g., 'NPT- Cholangiocarcinoma').
     
     Returns:
         pd.DataFrame: The subsetted DataFrame.
@@ -131,9 +131,9 @@ def subset_by_cancer_status(df, cancer_status):
     print(f"Subsetted DataFrame for Cancer_Status='{cancer_status}' created successfully.")
     return subset_df
 
-# Subset data frames for NPT- Pancreatic Cancer and Resistant- Pancreatic Cancer
-npt_pancreatic_df = subset_by_cancer_status(pancreatic_df, 'NPT- Pancreatic Cancer')
-resistant_pancreatic_df = subset_by_cancer_status(pancreatic_df, 'Resistant- Pancreatic Cancer')
+# Subset data frames for NPT- Cholangiocarcinoma and Resistant- Cholangiocarcinoma
+npt_cholangio_df = subset_by_cancer_status(cholangio_df, 'NPT- Cholangiocarcinoma')
+resistant_cholangio_df = subset_by_cancer_status(cholangio_df, 'Resistant- Cholangiocarcinoma')
 
 ```
 ```{python recode ALAN}
@@ -143,18 +143,18 @@ bins = [-1, 0, 2, 4]
 labels = ['Low_Risk', 'Intermediate_Risk', 'High_Risk']
 
 # Recode Risk_Group_ALAN column based on Prognostic_Score_ALAN
-resistant_pancreatic_df['Risk_Group_ALAN'] = pd.cut(resistant_pancreatic_df['Prognostic_Score_ALAN'], bins=bins, labels=labels, include_lowest=False)
-npt_pancreatic_df['Risk_Group_ALAN'] = pd.cut(npt_pancreatic_df['Prognostic_Score_ALAN'], bins=bins, labels=labels, include_lowest=False)
+resistant_cholangio_df['Risk_Group_ALAN'] = pd.cut(resistant_cholangio_df['Prognostic_Score_ALAN'], bins=bins, labels=labels, include_lowest=False)
+npt_cholangio_df['Risk_Group_ALAN'] = pd.cut(npt_cholangio_df['Prognostic_Score_ALAN'], bins=bins, labels=labels, include_lowest=False)
 
 ```
 
 Examine the variables within your data 
 ```{python examine subset}
 # Glimpse at the subsetted data frames
-print("\nSubsetted NPT Pancreatic Cancer Data Frame:")
-print(npt_pancreatic_df.head())
-print("\nSubsetted Resistant Pancreatic Cancer Data Frame:")
-print(resistant_pancreatic_df.head())
+print("\nSubsetted NPT Cholangiocarcinoma Data Frame:")
+print(npt_cholangio_df.head())
+print("\nSubsetted Resistant Cholangiocarcinoma Data Frame:")
+print(resistant_cholangio_df.head())
 
 ```
 
@@ -162,13 +162,13 @@ print(resistant_pancreatic_df.head())
 Determine the types of class each column contains as its datatype
 ```{python examine type}
 # Check data types of columns in DataFrame
-print(npt_pancreatic_df.dtypes)
-print(resistant_pancreatic_df.dtypes)
+print(npt_cholangio_df.dtypes)
+print(resistant_cholangio_df.dtypes)
 
 ```
 ## Numeric Summary
 
-Step 1: calculate the numeric statistics of the pancreatic_df
+Step 1: calculate the numeric statistics of the cholangio_df
 data frame #Note:You can specify percentiles, quantiles and normality or you can give specific percentiles depending on what you are interested in looking at this specific usage is looking at the 33rd and 67th percentiles of the data
 
 Step 2: Create histograms, boxplots and distribution curves to visualize the descriptive statistics of the numeric variables.
@@ -195,17 +195,17 @@ def calculate_numeric_statistics(data):
     
     return stats_combined
 
-# Create summary statistics table for NPT pancreatic cancer
-npt_pancreatic_stats = calculate_numeric_statistics(npt_pancreatic_df)
+# Create summary statistics table for NPT Cholangiocarcinoma
+npt_cholangio_stats = calculate_numeric_statistics(npt_cholangio_df)
 
-# Create summary statistics table for resistant pancreatic cancer
-resistant_pancreatic_stats = calculate_numeric_statistics(resistant_pancreatic_df)
+# Create summary statistics table for resistant Cholangiocarcinoma
+resistant_cholangio_stats = calculate_numeric_statistics(resistant_cholangio_df)
 
 # Display the tables
-print("Summary statistics for NPT Pancreatic cancer:")
-print(npt_pancreatic_stats)
-print("\nSummary statistics for resistant pancreatic cancer:")
-print(resistant_pancreatic_stats)
+print("Summary statistics for NPT Cholangiocarcinoma:")
+print(npt_cholangio_stats)
+print("\nSummary statistics for resistant Cholangiocarcinoma:")
+print(resistant_cholangio_stats)
 ```
 
 ```{r advanced numeric summary}
@@ -213,17 +213,17 @@ print(resistant_pancreatic_stats)
 #Load Util functions
 source("Utils.R")
 
-# Generate the first table for Resistant Pancreatic Cancer
-resistant_pancreatic_table <- calc_num_stats(py$resistant_pancreatic_df, selected_labels = c("Quantiles", "Percentiles"), percentiles = c(33, 67), title = "Numeric Statistics for Resistant Pancreatic Cancer")
+# Generate the first table for Resistant Cholangiocarcinoma
+resistant_cholangio_table <- calc_num_stats(py$resistant_cholangio_df, selected_labels = c("Quantiles", "Percentiles"), percentiles = c(33, 67), title = "Numeric Statistics for Resistant Cholangiocarcinoma")
 
 # Save the table as an image
-gtsave(resistant_pancreatic_table, filename = file.path(output_dir, "resistant_pancreatic_table.png"))
+gtsave(resistant_cholangio_table, filename = file.path(output_dir, "resistant_cholangio_table.png"))
 
-# Generate the second table for NPT Pancreatic Cancer
-npt_pancreatic_table <- calc_num_stats(py$npt_pancreatic_df, selected_labels = c("Quantiles", "Percentiles"), percentiles = c(33, 67), title = "Numeric Statistics for NPT Pancreatic Cancer")
+# Generate the second table for NPT Cholangiocarcinoma
+npt_cholangio_table <- calc_num_stats(py$npt_cholangio_df, selected_labels = c("Quantiles", "Percentiles"), percentiles = c(33, 67), title = "Numeric Statistics for NPT Cholangiocarcinoma")
 
 # Save the table as an image
-gtsave(npt_pancreatic_table, filename = file.path(output_dir, "npt_pancreatic_table.png"))
+gtsave(npt_cholangio_table, filename = file.path(output_dir, "npt_cholangio_table.png"))
 
 
 ```
@@ -280,7 +280,7 @@ def plot_numeric_statistics(df, variable, subset):
     plt.tight_layout()
     
     # Save the plot as an image
-    plt.savefig(f'output/{subset}_{variable}_plot.png')
+    plt.savefig(f'output/Cholangio_Output/{subset}_{variable}_plot.png')
     
     # Close the plot to release memory
     plt.close()
@@ -289,14 +289,14 @@ def plot_numeric_statistics(df, variable, subset):
 exclude_columns = ['Prognostic_Score_ALAN', 'Event_Status']
 
 # Iterate over each numeric variable in your dataset and call the plot_numeric_statistics function
-for column in npt_pancreatic_df.select_dtypes(include=['int64', 'float64']).columns:
+for column in npt_cholangio_df.select_dtypes(include=['int64', 'float64']).columns:
     if column not in exclude_columns:
-        plot_numeric_statistics(npt_pancreatic_df, column, 'NPT_Pancreatic_Cancer')
+        plot_numeric_statistics(npt_cholangio_df, column, 'NPT_Cholangiocarcinoma')
         
 # Iterate over each numeric variable in your dataset and call the plot_numeric_statistics function
-for column in resistant_pancreatic_df.select_dtypes(include=['int64', 'float64']).columns:
+for column in resistant_cholangio_df.select_dtypes(include=['int64', 'float64']).columns:
     if column not in exclude_columns:
-        plot_numeric_statistics(resistant_pancreatic_df, column, 'Resistant_Pancreatic_Cancer')
+        plot_numeric_statistics(resistant_cholangio_df, column, 'Resistant_Cholangiocarcinoma')
 
 ```
 
@@ -351,15 +351,15 @@ categorize_values <- function(df) {
 
 
 # Apply categorization to each DataFrame
-categorized_npt_pancreatic_df <- categorize_values(py$npt_pancreatic_df)
-categorized_resistant_pancreatic_df <- categorize_values(py$resistant_pancreatic_df)
+categorized_npt_cholangio_df <- categorize_values(py$npt_cholangio_df)
+categorized_resistant_cholangio_df <- categorize_values(py$resistant_cholangio_df)
 
 # Check the result
-print("Categorized NPT Pancreatic DataFrame:")
-print(head(categorized_npt_pancreatic_df))
+print("Categorized NPT cholangio DataFrame:")
+print(head(categorized_npt_cholangio_df))
 
-print("\nCategorized Resistant Pancreatic DataFrame:")
-print(head(categorized_resistant_pancreatic_df))
+print("\nCategorized Resistant cholangio DataFrame:")
+print(head(categorized_resistant_cholangio_df))
 
 ```
 ```{r convert to factors}
@@ -374,22 +374,22 @@ convert_to_factors <- function(df, columns_to_convert) {
 columns_to_convert <- c('Age_60', 'Age_65', 'Age_70', 'Albumin_3.5', 'LMR_2.1', 'PLT_300', 'LY_1.5', 'MON_0.8', 
                         'ANC_4', 'ANC_8', 'NLR_3', 'NLR_5', 'Alk_Phos_135', 'Alk_Phos_200')
 
-# Convert columns to factors for categorized_npt_pancreatic_df
-categorized_npt_pancreatic_df <- convert_to_factors(categorized_npt_pancreatic_df, columns_to_convert)
+# Convert columns to factors for categorized_npt_cholangio_df
+categorized_npt_cholangio_df <- convert_to_factors(categorized_npt_cholangio_df, columns_to_convert)
 
-# Convert columns to factors for categorized_resistant_pancreatic_df
-categorized_resistant_pancreatic_df <- convert_to_factors(categorized_resistant_pancreatic_df, columns_to_convert)
+# Convert columns to factors for categorized_resistant_cholangio_df
+categorized_resistant_cholangio_df <- convert_to_factors(categorized_resistant_cholangio_df, columns_to_convert)
 
 # Check the structure of the dataframes
-str(categorized_npt_pancreatic_df)
-str(categorized_resistant_pancreatic_df)
+str(categorized_npt_cholangio_df)
+str(categorized_resistant_cholangio_df)
 
 ```
 
 
 ## Categoric Summary
 
-Calculate the Categorical statistics for our new pancreatic data frame
+Calculate the Categorical statistics for our new cholangio data frame
 
 ```{python calculate categoric}
 def calculate_categorical_statistics(data, title="Categorical Statistics"):
@@ -432,11 +432,11 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 # Calling the Python function on the R data frames
-categorized_npt_pancreatic_stats = calculate_categorical_statistics(r.categorized_npt_pancreatic_df)
-categorized_resistant_pancreatic_stats = calculate_categorical_statistics(r.categorized_resistant_pancreatic_df)
+categorized_npt_cholangio_stats = calculate_categorical_statistics(r.categorized_npt_cholangio_df)
+categorized_resistant_cholangio_stats = calculate_categorical_statistics(r.categorized_resistant_cholangio_df)
 
-print(categorized_npt_pancreatic_stats)
-print(categorized_resistant_pancreatic_stats)
+print(categorized_npt_cholangio_stats)
+print(categorized_resistant_cholangio_stats)
 
 
 ```
@@ -448,15 +448,15 @@ library(gt)
 
 # Define a function to save gt tables as images
 save_gt_as_image <- function(table, filename) {
-  gtsave(table, filename = filename, path = "output")
+  gtsave(table, filename = filename, path = "output/Cholangio_Output")
 }
 
 # Call the calc_cat_stats function and save the resulting gt tables
-cat_stats_npt_pancreatic <- calc_cat_stats(categorized_npt_pancreatic_df, title = "Categoric Statistics for NPT- Pancreatic Cancer")
-save_gt_as_image(cat_stats_npt_pancreatic, "categoric_stats_npt_pancreatic.png")
+cat_stats_npt_cholangio <- calc_cat_stats(categorized_npt_cholangio_df, title = "Categoric Statistics for NPT- Cholangiocarcinoma")
+save_gt_as_image(cat_stats_npt_cholangio, "categoric_stats_npt_cholangio.png")
 
-cat_stats_resistant_pancreatic <- calc_cat_stats(categorized_resistant_pancreatic_df, title = "Categoric Statistics for Resistant- Pancreatic Cancer")
-save_gt_as_image(cat_stats_resistant_pancreatic, "categoric_stats_resistant_pancreatic.png")
+cat_stats_resistant_cholangio <- calc_cat_stats(categorized_resistant_cholangio_df, title = "Categoric Statistics for Resistant- Cholangiocarcinoma")
+save_gt_as_image(cat_stats_resistant_cholangio, "categoric_stats_resistant_cholangio.png")
 
 
 ```
@@ -518,8 +518,8 @@ def plot_combined_categorical_statistics(data, title="Categorical Statistics"):
 
 # Example usage:
 # Plot combined categorical statistics
-plot_combined_categorical_statistics(categorized_npt_pancreatic_stats, title="Categorical Statistics for NPT- Pancreatic Cancer")
-plot_combined_categorical_statistics(categorized_resistant_pancreatic_stats, title="Categorical Statistics for Resistant- Pancreatic Cancer")
+plot_combined_categorical_statistics(categorized_npt_cholangio_stats, title="Categorical Statistics for NPT- Cholangiocarcinoma")
+plot_combined_categorical_statistics(categorized_resistant_cholangio_stats, title="Categorical Statistics for Resistant- Cholangiocarcinoma")
 
 plt.close()  # Close the plot to avoid displaying it again later
 
@@ -533,11 +533,11 @@ plt.close()  # Close the plot to avoid displaying it again later
 
 ```{r Suvival Object}
 
-# Create survival object for categorized_resistant_pancreatic_df
-surv_obj_resistant <- Surv(time = categorized_resistant_pancreatic_df$time_diff_months, event = categorized_resistant_pancreatic_df$Event_Status)
+# Create survival object for categorized_resistant_cholangio_df
+surv_obj_resistant <- Surv(time = categorized_resistant_cholangio_df$time_diff_months, event = categorized_resistant_cholangio_df$Event_Status)
 
-# Create survival object for categorized_npt_pancreatic_df
-surv_obj_npt <- Surv(time = categorized_npt_pancreatic_df$time_diff_months, event = categorized_npt_pancreatic_df$Event_Status)
+# Create survival object for categorized_npt_cholangio_df
+surv_obj_npt <- Surv(time = categorized_npt_cholangio_df$time_diff_months, event = categorized_npt_cholangio_df$Event_Status)
 ```
 
 # Overall Kaplan Meier 
@@ -555,11 +555,11 @@ library(ggplotify)
   if (!"ggsurvplot" %in% loadedNamespaces()) {
     library(survminer)
   }
-resistant_fit <- survfit(Surv(time = categorized_resistant_pancreatic_df$time_diff_months, event = categorized_resistant_pancreatic_df$Event_Status) ~1, data = categorized_resistant_pancreatic_df)
+resistant_fit <- survfit(Surv(time = categorized_resistant_cholangio_df$time_diff_months, event = categorized_resistant_cholangio_df$Event_Status) ~1, data = categorized_resistant_cholangio_df)
 
 resistant_kmplot <- ggsurvplot(resistant_fit,
-                              data = categorized_resistant_pancreatic_df,
-                              title = "Survival Curve for Resistant Pancreatic Cancer",
+                              data = categorized_resistant_cholangio_df,
+                              title = "Survival Curve for Resistant Cholangiocarcinoma",
                               censor = TRUE,
                               xlab = "Time (Months)",
                               ylab = "Survival Probability",
@@ -572,18 +572,18 @@ resistant_kmplot <- ggsurvplot(resistant_fit,
                               break.time.by = 3,
                               breaks = seq(0, 24, by = 3),
                               surv.scale = "percent",
-                              legend.labs = paste("Resistant- Pancreatic Cancer (N =", nrow(categorized_resistant_pancreatic_df),")"),
+                              legend.labs = paste("Resistant- Cholangiocarcinoma (N =", nrow(categorized_resistant_cholangio_df),")"),
                               palette = "lancet")
 
 resistant_kmplot <- resistant_kmplot + ggsurvfit::theme_ggsurvfit_KMunicate()
 
 
 
-npt_fit <- survfit(Surv(time = categorized_npt_pancreatic_df$time_diff_months, event = categorized_npt_pancreatic_df$Event_Status) ~1, data = categorized_npt_pancreatic_df)
+npt_fit <- survfit(Surv(time = categorized_npt_cholangio_df$time_diff_months, event = categorized_npt_cholangio_df$Event_Status) ~1, data = categorized_npt_cholangio_df)
 
 npt_kmplot <- ggsurvplot(npt_fit,
-                              data = categorized_npt_pancreatic_df,
-                              title = "Survival Curve for No Prior Treatment Pancreatic Cancer",
+                              data = categorized_npt_cholangio_df,
+                              title = "Survival Curve for No Prior Treatment Cholangiocarcinoma",
                               censor = TRUE,
                               xlab = "Time (Months)",
                               ylab = "Survival Probability",
@@ -596,7 +596,7 @@ npt_kmplot <- ggsurvplot(npt_fit,
                               break.time.by = 3,
                               breaks = seq(0, 24, by = 3),
                               surv.scale = "percent",
-                              legend.labs = paste("NPT- Pancreatic Cancer (N =", nrow(categorized_npt_pancreatic_df),")"),
+                              legend.labs = paste("NPT- Cholangiocarcinoma (N =", nrow(categorized_npt_cholangio_df),")"),
                               palette = "lancet")
 
 npt_kmplot <- npt_kmplot + ggsurvfit::theme_ggsurvfit_KMunicate()
@@ -610,8 +610,8 @@ resistant_kmplot_gg <- resistant_kmplot$plot
 npt_kmplot_gg <- npt_kmplot$plot
 
 # Save the ggplot objects
-ggsave(filename = "output/resistant_kmplot.png", plot = resistant_kmplot_gg, width = 10, height = 6)
-ggsave(filename = "output/npt_kmplot.png", plot = npt_kmplot_gg, width = 10, height = 6)
+ggsave(filename = "output/Cholangio_Output/resistant_kmplot.png", plot = resistant_kmplot_gg, width = 10, height = 6)
+ggsave(filename = "output/Cholangio_Output/npt_kmplot.png", plot = npt_kmplot_gg, width = 10, height = 6)
 
 
 ```
@@ -620,7 +620,7 @@ ggsave(filename = "output/npt_kmplot.png", plot = npt_kmplot_gg, width = 10, hei
 combined_fit <- list(NPT = npt_fit, Resistant = resistant_fit)
 combined_kmplot <- ggsurvplot_combine(combined_fit,
                                   data = data_resistant,
-                                  title = "Survival Curve for Resistant- vs. NPT- Pancreatic Cancer",
+                                  title = "Survival Curve for Resistant- vs. NPT- Cholangiocarcinoma",
                                   censor = TRUE,
                                   xlab = "Time (Months)",
                                   ylab = "Survival Probability",
@@ -639,13 +639,13 @@ combined_kmplot
   
 combined_gg <- combined_kmplot$plot
 # Save the ggplot objects
-ggsave(filename = "output/resistant_v_npt_kmplot.png", plot = combined_gg, width = 10, height = 6)
+ggsave(filename = "output/Cholangio_Output/resistant_v_npt_kmplot.png", plot = combined_gg, width = 10, height = 6)
 ```
 
 
 ```{r rename df}
-npt_df <- categorized_npt_pancreatic_df
-resistant_df <- categorized_resistant_pancreatic_df
+npt_df <- categorized_npt_cholangio_df
+resistant_df <- categorized_resistant_cholangio_df
 
 colnames(npt_df)
 ```
@@ -658,10 +658,10 @@ colnames(npt_df)
 # Define column names, variables, and cutoffs
 column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
 
-# Initialize a list to store survival fits for resistant Pancreatic Cancer 
+# Initialize a list to store survival fits for resistant Cholangiocarcinoma 
 resistant_km_fits <- list()
 
-# Loop through variables for resistant Pancreatic Cancer
+# Loop through variables for resistant Cholangiocarcinoma
 for (col in column_names) {
   # Construct formula with variable name extracted from column name
   formula <- as.formula(paste("surv_obj_resistant ~", col))
@@ -674,7 +674,7 @@ for (col in column_names) {
 }
 
 # Access results using names like resistant_km_fit_Albumin_3.5 etc.
-print("Resistant Pancreatic Cancer Survival Fits:")
+print("Resistant Cholangiocarcinoma Survival Fits:")
 print(resistant_km_fits)
 
 # Add a line of dashes for separation
@@ -685,10 +685,10 @@ cat("\n", paste(rep("-", 40), collapse = ""), "\n")
 # Define column names, variables, and cutoffs
 column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
 
-# Initialize a list to store survival fits for NPT Pancreatic Cancer 
+# Initialize a list to store survival fits for NPT Cholangiocarcinoma 
 npt_km_fits <- list()
 
-# Loop through variables for NPT Pancreatic Cancer
+# Loop through variables for NPT Cholangiocarcinoma
 for (col in column_names) {
   # Construct formula with variable name extracted from column name
   formula <- as.formula(paste("surv_obj_npt ~", col))
@@ -701,7 +701,7 @@ for (col in column_names) {
 }
 
 # Access results using names like resistant_km_fit_Albumin_3.5 etc.
-print("NPT- Pancreatic Cancer Survival Fits:")
+print("NPT- Cholangiocarcinoma Survival Fits:")
 print(npt_km_fits)
 
 # Add a line of dashes for separation
@@ -752,14 +752,14 @@ For Resistant Log-Rank
 13. **Prognostic_Score_ALAN_category**:
     - There's a significant difference in survival among patients in different prognostic score categories (p = 0.001). Post-hoc pairwise comparisons show significant differences between all categories.
 
-These results suggest that factors like Albumin, ANC, NLR, and Alk_Phos levels might be associated with survival outcomes in patients with resistant pancreatic cancer, while other factors like LMR, MON, LY, PLT, and age may not have significant associations.
+These results suggest that factors like Albumin, ANC, NLR, and Alk_Phos levels might be associated with survival outcomes in patients with resistant Cholangiocarcinoma, while other factors like LMR, MON, LY, PLT, and age may not have significant associations.
 
 ```{r Resistant Log-Rank Test}
  
 # Define column names
 column_names <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", "Age_60", "Age_65", "Age_70", "Prognostic_Score_ALAN_category")
 
-# Initialize an empty data frame to store log-rank test results for Resistant Pancreatic Cancer
+# Initialize an empty data frame to store log-rank test results for Resistant Cholangiocarcinoma
 log_rank_results_df_resistant <- data.frame(
   variable = character(),
   cutoff = numeric(),
@@ -768,7 +768,7 @@ log_rank_results_df_resistant <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Loop through variables for resistant Pancreatic Cancer
+# Loop through variables for resistant Cholangiocarcinoma
 for (col in column_names) {
   if (grepl("^Prognostic_Score_ALAN_Category", col)) {
     # Treat categorical variable as a factor
@@ -786,9 +786,9 @@ for (col in column_names) {
       stringsAsFactors = FALSE
     ))
     
-    # Print log-rank test information for Resistant Pancreatic Cancer
+    # Print log-rank test information for Resistant Cholangiocarcinoma
     cat(rep("-", 20), "\n")
-    cat("Log-rank tests for Resistant Pancreatic Cancer -", col, "\n")
+    cat("Log-rank tests for Resistant Cholangiocarcinoma -", col, "\n")
     cat(rep("-", 20), "\n")
     print(resistant_logrank)
   } else {
@@ -808,9 +808,9 @@ for (col in column_names) {
       stringsAsFactors = FALSE
     ))
   
-    # Print log-rank test information for Resistant Pancreatic Cancer
+    # Print log-rank test information for Resistant Cholangiocarcinoma
     cat(rep("-", 20), "\n")
-    cat("Log-rank tests for Resistant Pancreatic Cancer -", col, "\n")
+    cat("Log-rank tests for Resistant Cholangiocarcinoma -", col, "\n")
     cat(rep("-", 20), "\n")
     print(resistant_logrank)
   }
@@ -818,7 +818,7 @@ for (col in column_names) {
 
 
 # Display log-rank test results in a table
-kable(log_rank_results_df_resistant, caption = "Log-rank Test Results for Resistant Pancreatic Cancer")
+kable(log_rank_results_df_resistant, caption = "Log-rank Test Results for Resistant Cholangiocarcinoma")
 
 ```
 For NPT Log-Rank: 
@@ -927,7 +927,7 @@ for (col in column_names_npt) {
 }
 
 # Display log-rank test results for npt in a table
-kable(log_rank_results_df_npt, caption = "Log-rank Test Results for npt- pancreatic cancer")
+kable(log_rank_results_df_npt, caption = "Log-rank Test Results for npt- Cholangiocarcinoma")
 
 
 ```
@@ -947,7 +947,7 @@ These results are pairwise log-rank tests comparing different levels of the vari
    - Chisq: 3.8 on 1 degree of freedom, p-value = 0.05
    - Interpretation: There is a marginally significant difference in survival between patients with a prognostic score of 2 and those with a score of 3-4.
 
-In summary, these results indicate that the prognostic score categories have significant or marginally significant differences in survival among the patients with resistant pancreatic cancer.
+In summary, these results indicate that the prognostic score categories have significant or marginally significant differences in survival among the patients with resistant Cholangiocarcinoma.
 
 ```{r Resistant Pairwise Logrank}
 # Get unique levels of Prognostic_Score_ALAN_category
@@ -972,7 +972,7 @@ for (i in 1:(length(levels_resistant)-1)) {
 }
 
 # Print the results
-print("Pairwise log-rank test results for resistant pancreatic cancer:")
+print("Pairwise log-rank test results for resistant Cholangiocarcinoma:")
 print(pairwise_results_resistant)
 
 ```
@@ -1022,7 +1022,7 @@ for (i in 1:(length(levels_npt)-1)) {
 }
 
 # Print the results
-print("Pairwise log-rank test results for npt- pancreatic cancer:")
+print("Pairwise log-rank test results for npt- Cholangiocarcinoma:")
 print(pairwise_results_npt)
 
 
@@ -1031,11 +1031,11 @@ print(pairwise_results_npt)
 ##Cox Proportional Hazards
 
 ```{r Resistant Cox Proportional Hazards}
-# Initialize lists to store Cox models, p-values, and hazard ratios for Resistant Pancreatic Cancer
+# Initialize lists to store Cox models, p-values, and hazard ratios for Resistant Cholangiocarcinoma
 cox_p_values_list_resistant <- list()
 cox_hazard_ratios_list_resistant <- list()
 
-# Loop through variables for Resistant Pancreatic Cancer
+# Loop through variables for Resistant Cholangiocarcinoma
 for (col in column_names) {
   
    # Extract cutoff and variable name using regular expressions
@@ -1048,9 +1048,9 @@ for (col in column_names) {
     # Fit Cox model
     cox_model_resistant <- coxph(formula_resistant, data = resistant_df)
     
-    # Print Cox model for Resistant Pancreatic Cancer
+    # Print Cox model for Resistant Cholangiocarcinoma
     cat(rep("-", 30), "\n")
-    cat("Cox Proportional Hazards for Resistant Pancreatic Cancer  -", col, "\n")
+    cat("Cox Proportional Hazards for Resistant Cholangiocarcinoma  -", col, "\n")
     cat(rep("-", 30), "\n")
     print(cox_model_resistant)
     
@@ -1068,29 +1068,29 @@ for (col in column_names) {
       # Extract p-value
       cox_p_value_resistant <- as.numeric(format(summary(cox_model_resistant)$coefficients[, "Pr(>|z|)"], scientific = TRUE, digits = 3))
       
-      # Print p-value for Resistant Pancreatic Cancer
+      # Print p-value for Resistant Cholangiocarcinoma
       cat("P-value:", cox_p_value_resistant, "\n")
     } else {
       # Extract p-value
       cox_p_value_resistant <- as.numeric(format(summary(cox_model_resistant)$coefficients[coef_name_resistant, "Pr(>|z|)"], scientific = TRUE, digits = 3))
       
-      # Print p-value for Resistant Pancreatic Cancer
+      # Print p-value for Resistant Cholangiocarcinoma
       cat("P-value:", cox_p_value_resistant, "\n")
     }
     
     # Extract Hazard Ratio
     cox_hazard_ratio_resistant <- exp(coef(cox_model_resistant))
     
-    # Print Hazard Ratio for Resistant Pancreatic Cancer
+    # Print Hazard Ratio for Resistant Cholangiocarcinoma
     cat("Hazard Ratio:", cox_hazard_ratio_resistant, "\n")
     
-    # Append the results to respective lists for Resistant Pancreatic Cancer
+    # Append the results to respective lists for Resistant Cholangiocarcinoma
     cox_p_values_list_resistant[[length(cox_p_values_list_resistant) + 1]] <- c(col, cutoff, cox_p_value_resistant)
     cox_hazard_ratios_list_resistant[[length(cox_hazard_ratios_list_resistant) + 1]] <- c(col, cutoff, cox_hazard_ratio_resistant)
     
 }
 
-# Convert lists to data frames for Resistant Pancreatic Cancer
+# Convert lists to data frames for Resistant Cholangiocarcinoma
 cox_p_values_df_resistant <- as.data.frame(do.call(rbind, cox_p_values_list_resistant), stringsAsFactors = FALSE)
 colnames(cox_p_values_df_resistant) <- c("column_names", "cutoff", "cox_p_value")
 cox_p_values_df_resistant$cutoff <- as.numeric(cox_p_values_df_resistant$cutoff)
@@ -1101,16 +1101,16 @@ colnames(cox_hazard_ratios_df_resistant) <- c("column_names", "cutoff", "cox_haz
 cox_hazard_ratios_df_resistant$cutoff <- as.numeric(cox_hazard_ratios_df_resistant$cutoff)
 cox_hazard_ratios_df_resistant$cox_hazard_ratio <- as.numeric(cox_hazard_ratios_df_resistant$cox_hazard_ratio)
 
-# Merge the two data frames for Resistant Pancreatic Cancer
+# Merge the two data frames for Resistant Cholangiocarcinoma
 coxph_df_resistant <- merge(cox_p_values_df_resistant, cox_hazard_ratios_df_resistant, by = c("column_names", "cutoff"), sort = FALSE)
 
 # Select only the relevant columns
 coxph_df_resistant <- coxph_df_resistant[, c("column_names", "cutoff", "cox_p_value", "cox_hazard_ratio")]
 
-# Print the combined data frame for Resistant Pancreatic Cancer using kable
-kable(coxph_df_resistant, caption = "Cox Proportional Hazards Results for Resistant Pancreatic Cancer")
+# Print the combined data frame for Resistant Cholangiocarcinoma using kable
+kable(coxph_df_resistant, caption = "Cox Proportional Hazards Results for Resistant Cholangiocarcinoma")
 
-# Print the structure of the combined data frame for Resistant Pancreatic Cancer
+# Print the structure of the combined data frame for Resistant Cholangiocarcinoma
 str(coxph_df_resistant)
 
 ```
@@ -1193,7 +1193,7 @@ coxph_df_npt <- merge(cox_p_values_df_npt, cox_hazard_ratios_df_npt, by = c("col
 coxph_df_npt <- coxph_df_npt[, c("column_names", "cutoff", "cox_p_value", "cox_hazard_ratio")]
 
 # Print the combined data frame for NPT using kable
-kable(coxph_df_npt, caption = "Cox Proportional Hazards Results for NPT- Pancreatic Cancer")
+kable(coxph_df_npt, caption = "Cox Proportional Hazards Results for NPT- Cholangiocarcinoma")
 
 # Print the structure of the combined data frame for NPT
 str(coxph_df_npt)
@@ -1207,41 +1207,41 @@ str(coxph_df_npt)
 ##Schoenfeld Residuals Test
 
 ```{r Resistant Schoenfeld Test}
-# Initialize lists to store Schoenfeld test results and plots for Resistant Pancreatic Cancer
+# Initialize lists to store Schoenfeld test results and plots for Resistant Cholangiocarcinoma
 schoenfeld_results_list_resistant <- list()
 schoenfeld_plots_list_resistant <- list()
 
-# Loop through variables for Resistant Pancreatic Cancer
+# Loop through variables for Resistant Cholangiocarcinoma
 for (col in column_names) {
   # Create formula for Cox model
   formula_resistant <- as.formula(paste("Surv(time_diff_months, Event_Status) ~", col))
   
-  # Fit Cox model for Resistant Pancreatic Cancer
+  # Fit Cox model for Resistant Cholangiocarcinoma
   cox_model_resistant <- coxph(formula_resistant, data = resistant_df)
   
-  # Perform Schoenfeld test for Resistant Pancreatic Cancer
+  # Perform Schoenfeld test for Resistant Cholangiocarcinoma
   schoenfeld_test_resistant <- cox.zph(cox_model_resistant)
   
-  # Print Schoenfeld test results for Resistant Pancreatic Cancer
+  # Print Schoenfeld test results for Resistant Cholangiocarcinoma
   cat(rep("-", 45), "\n")
-  cat("Schoenfeld Test for Resistant Pancreatic Cancer -", col, "\n")
+  cat("Schoenfeld Test for Resistant Cholangiocarcinoma -", col, "\n")
   cat(rep("-", 45), "\n")
   print(schoenfeld_test_resistant)
   
-  # Store Schoenfeld test result for Resistant Pancreatic Cancer in the list
+  # Store Schoenfeld test result for Resistant Cholangiocarcinoma in the list
   schoenfeld_results_list_resistant[[paste("schoenfeld_test", tolower(col), sep = "_")]] <- schoenfeld_test_resistant
   
-  # Plot Schoenfeld residuals using ggcoxzph for Resistant Pancreatic Cancer
-  schoenfeld_plot_resistant <- ggcoxzph(schoenfeld_test_resistant, caption = paste("Schoenfeld Plot of Resistant Pancreatic Cancer for residuals of", col))
+  # Plot Schoenfeld residuals using ggcoxzph for Resistant Cholangiocarcinoma
+  schoenfeld_plot_resistant <- ggcoxzph(schoenfeld_test_resistant, caption = paste("Schoenfeld Plot of Resistant Cholangiocarcinoma for residuals of", col))
   
-  # Store Schoenfeld plot for Resistant Pancreatic Cancer in the list
+  # Store Schoenfeld plot for Resistant Cholangiocarcinoma in the list
   schoenfeld_plots_list_resistant[[paste("schoenfeld_plot", tolower(col), sep = "_")]] <- schoenfeld_plot_resistant
   
-  # Print the plot for Resistant Pancreatic Cancer
+  # Print the plot for Resistant Cholangiocarcinoma
   print(schoenfeld_plot_resistant)
 }
 
-# Access results using names like schoenfeld_test_ly etc. for Resistant Pancreatic Cancer
+# Access results using names like schoenfeld_test_ly etc. for Resistant Cholangiocarcinoma
 print(schoenfeld_results_list_resistant)
 print(schoenfeld_plots_list_resistant)
 
@@ -1250,7 +1250,7 @@ print(schoenfeld_plots_list_resistant)
 
 ```{r NPT Schoenfeld Test}
 
-# Initialize lists to store Schoenfeld test results and plots for No Prior Treatment Pancreatic Cancer (NPT)
+# Initialize lists to store Schoenfeld test results and plots for No Prior Treatment Cholangiocarcinoma (NPT)
 schoenfeld_results_list_npt <- list()
 schoenfeld_plots_list_npt <- list()
 
@@ -1267,7 +1267,7 @@ for (col in column_names) {
   
   # Print Schoenfeld test results for NPT
   cat(rep("-", 45), "\n")
-  cat("Schoenfeld Test for NPT- Pancreatic Cancer", col, "\n")
+  cat("Schoenfeld Test for NPT- Cholangiocarcinoma", col, "\n")
   cat(rep("-", 45), "\n")
   print(schoenfeld_test_npt)
   
@@ -1275,7 +1275,7 @@ for (col in column_names) {
   schoenfeld_results_list_npt[[paste("schoenfeld_test", tolower(col), sep = "_")]] <- schoenfeld_test_npt
   
   # Plot Schoenfeld residuals using ggcoxzph for NPT
-  schoenfeld_plot_npt <- ggcoxzph(schoenfeld_test_npt, caption = paste("Schoenfeld Plot of No Prior Treatment Pancreatic Cancer for residuals of", col))
+  schoenfeld_plot_npt <- ggcoxzph(schoenfeld_test_npt, caption = paste("Schoenfeld Plot of No Prior Treatment Cholangiocarcinoma for residuals of", col))
   
   # Store Schoenfeld plot for NPT in the list
   schoenfeld_plots_list_npt[[paste("schoenfeld_plot", tolower(col), sep = "_")]] <- schoenfeld_plot_npt
@@ -1376,7 +1376,7 @@ km_models_resistant <- fit_km_models(resistant_df, column_names)
 ```{r check logrank and HR}
 # Print the Log-Rank P-value and Hazard Ratio for each variable
 cat(rep("-", 40), "\n")
-print("Log-Rank pvalue and HR for NPT Pancreatic Cancer")
+print("Log-Rank pvalue and HR for NPT Cholangiocarcinoma")
 cat(rep("-", 40), "\n")
 for (col in names(km_models_npt)) {
   logrank_p_npt <- log_rank_results_df_npt$logrank_p_value[log_rank_results_df_npt$variable == col]
@@ -1389,7 +1389,7 @@ for (col in names(km_models_npt)) {
 
 # Print the Log-Rank P-value and Hazard Ratio for each variable
 cat(rep("-", 40), "\n")
-print("Log-Rank pvalue and HR for Resistant Pancreatic Cancer")
+print("Log-Rank pvalue and HR for Resistant Cholangiocarcinoma")
 cat(rep("-", 40), "\n")
 for (col in names(km_models_resistant)) {
   logrank_p_resistant <- log_rank_results_df_resistant$logrank_p_value[log_rank_results_df_resistant$variable == col]
@@ -1408,10 +1408,10 @@ for (col in names(km_models_resistant)) {
 
 ```{r NPT KM Plot }
 # Open a PDF device
-pdf("output/npt_km_plots.pdf")
+pdf("output/Cholangio_Output/npt_km_plots.pdf")
 
 # Loop through each variable and save its plot on a separate page
-for (variable in variables_of_interest) {
+for (variable in variables_of_interest_resistant) {
   legend_label <- legend_labels_npt[[variable]]
   logrank_p <- log_rank_results_df_npt$logrank_p_value[log_rank_results_df_npt$variable == variable]
   cox_HR <- coxph_df_npt$cox_hazard_ratio[coxph_df_npt$column_names == variable]
@@ -1436,7 +1436,7 @@ for (variable in variables_of_interest) {
   km_plot <- ggsurvplot(
     km_fit,
     data = npt_df,
-    title = paste("Kaplan-Meier Curve of NPT- Pancreatic Cancer by", variable),
+    title = paste("Kaplan-Meier Curve of NPT- Cholangiocarcinoma by", variable),
     censor = TRUE,
     xlab = "Time (Months)",
     ylab = "Survival Probability",
@@ -1473,7 +1473,7 @@ dev.off()
 ```
 ```{r Resistant KM Plots}
 # Open a PDF device
-pdf("output/resistant_km_plots.pdf")
+pdf("output/Cholangio_Output/resistant_km_plots.pdf")
 
 # Define the variables of interest for the resistant dataset
 variables_of_interest_resistant <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", 
@@ -1505,7 +1505,7 @@ for (variable_resistant in variables_of_interest_resistant) {
   km_plot_resistant <- ggsurvplot(
     km_fit_resistant,
     data = resistant_df,
-    title = paste("Kaplan-Meier Curve of Resistant Pancreatic Cancer by", variable_resistant),
+    title = paste("Kaplan-Meier Curve of Resistant Cholangiocarcinoma by", variable_resistant),
     censor = TRUE,
     xlab = "Time (Months)",
     ylab = "Survival Probability",
@@ -1569,7 +1569,7 @@ cox_HR <- format(cox_HR, scientific = TRUE, digits = 3)
 km_plot <- ggsurvplot(
   km_fit,
   data = npt_df,
-  title = paste("Kaplan-Meier Curve of NPT- Pancreatic Cancer by ALAN Score"),
+  title = paste("Kaplan-Meier Curve of NPT- Cholangiocarcinoma by ALAN Score"),
   censor = TRUE,
   xlab = "Time (Months)",
   ylab = "Survival Probability",
@@ -1600,6 +1600,7 @@ print(km_plot)
 
 
 ```
+
 ```{r plot ALAN score resistant}
 # Define the variable of interest for the resistant dataset
 variable_resistant <- "Prognostic_Score_ALAN_category"
@@ -1628,7 +1629,7 @@ cox_HR_resistant <- format(cox_HR_resistant, scientific = TRUE, digits = 3)
 km_plot_resistant <- ggsurvplot(
   km_fit_resistant,
   data = resistant_df,
-  title = paste("Kaplan-Meier Curve of Resistant Pancreatic Cancer by ALAN Score"),
+  title = paste("Kaplan-Meier Curve of Resistant Cholangiocarcinoma by ALAN Score"),
   censor = TRUE,
   xlab = "Time (Months)",
   ylab = "Survival Probability",
