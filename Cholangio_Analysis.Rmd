@@ -1,5 +1,5 @@
 ---
-title: "Bruckner Oncology Resistant Cancer Survival Analysis"
+title: "Bruckner Oncology Resistant Cholangiocarcinoma Survival Analysis"
 author: "AJ Book"
 output:
   word_document: default
@@ -1403,6 +1403,12 @@ for (col in names(km_models_resistant)) {
 
 ```
 
+```{r}
+# Define the variables of interest for the resistant dataset
+variables_of_interest_resistant <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4", "ANC_8", 
+                                     "NLR_3", "NLR_5", "PLT_300", "Alk_Phos_135", "Alk_Phos_200", 
+                                     "Age_60", "Age_65", "Age_70")
+```
 
 
 
@@ -1598,7 +1604,7 @@ km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
 # Display the plot
 print(km_plot)
 
-
+ggsave(filename = "output/Cholangio_Output/KM Plots/npt_cholangio_ALAN_kmplot.png", plot = km_plot, width = 10, height = 6)
 ```
 
 ```{r plot ALAN score resistant}
@@ -1657,6 +1663,9 @@ km_plot_resistant <- km_plot_resistant + ggsurvfit::theme_ggsurvfit_KMunicate()
 
 # Display the plot for the resistant dataset
 print(km_plot_resistant)
+
+ggsave(filename = "output/Cholangio_Output/KM Plots/resistant_cholangio_ALAN_kmplot.png", plot = km_plot_resistant, width = 10, height = 6)
+
 
 ```
 
