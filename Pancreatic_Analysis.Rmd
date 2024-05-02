@@ -1606,6 +1606,8 @@ km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
 print(km_plot)
 
 
+ggsave(filename = "output/Pancreatic_Output/KM Plots/npt_pancreatic_ALAN_kmplot.png", plot = km_plot, width = 10, height = 6)
+
 ```
 ```{r plot ALAN score resistant}
 # Define the variable of interest for the resistant dataset
@@ -1663,6 +1665,8 @@ km_plot_resistant <- km_plot_resistant + ggsurvfit::theme_ggsurvfit_KMunicate()
 
 # Display the plot for the resistant dataset
 print(km_plot_resistant)
+
+ggsave(filename = "output/Pancreatic_Output/KM Plots/resistant_pancreatic_ALAN_kmplot.png", plot = km_plot_resistant, width = 10, height = 6)
 
 ```
 
