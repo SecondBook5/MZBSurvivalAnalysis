@@ -1,0 +1,4 @@
+"0","  "
+"0","resistant_gg <- resistant_kmplot$plot"
+"0","# Save the ggplot objects"
+"0","ggsave(filename = ""output/resistant_v_npt_kmplot.png"", plot = resistant_gg, width = 10, height = 6)"

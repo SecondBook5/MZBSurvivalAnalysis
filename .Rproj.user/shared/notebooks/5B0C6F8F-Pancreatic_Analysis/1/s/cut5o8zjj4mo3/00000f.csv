@@ -1,0 +1,29 @@
+"0","# Glimpse at the subsetted data frames"
+"0","print(""\nSubsetted NPT Pancreatic Cancer Data Frame:"")"
+"1","
+Subsetted NPT Pancreatic Cancer Data Frame:
+"
+"0","print(npt_pancreatic_df.head())"
+"1","             ID  Gender  Age  ...    PLT Alk_Phos Bilirubin
+204  d8a9d24503  Female   83  ...  282.0       63       0.4
+207  1d6e47f97e  Female   54  ...  230.0       50       0.4
+208  48f18e6238    Male   65  ...  158.0       83       0.5
+209  9a206d933f  Female   61  ...  312.0       93       0.4
+212  c0378634e8    Male   80  ...  218.0       90       0.7
+
+[5 rows x 23 columns]
+"
+"0","print(""\nSubsetted Resistant Pancreatic Cancer Data Frame:"")"
+"0","print(resistant_pancreatic_df.head())"
+"1","
+Subsetted Resistant Pancreatic Cancer Data Frame:
+"
+"1","             ID  Gender  Age  ...    PLT Alk_Phos Bilirubin
+205  e15cff092f    Male   60  ...  387.0       68       0.4
+206  f75e8549b8    Male   66  ...  183.0       93       0.6
+210  7c3e31d7d8  Female   71  ...  157.0      114       0.2
+211  9c823edf19  Female   76  ...  406.0      142       1.1
+213  7bdd6597e2    Male   83  ...  286.0      190       1.0
+
+[5 rows x 23 columns]
+"

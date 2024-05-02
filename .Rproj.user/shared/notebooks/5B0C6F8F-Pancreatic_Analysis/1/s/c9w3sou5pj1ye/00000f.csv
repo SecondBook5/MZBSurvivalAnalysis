@@ -1,0 +1,81 @@
+"0","def calculate_numeric_statistics(data):"
+"0","    # Select only numeric columns"
+"0","    numeric_data = data.select_dtypes(include=np.number)"
+"0","    "
+"0","    # Calculate descriptive statistics"
+"0","    descriptive_stats = numeric_data.describe().transpose()"
+"0","    "
+"0","    # Calculate interquartile range (IQR) and include quantiles (25th, 50th, and 75th percentiles)"
+"0","    quantiles = numeric_data.quantile([0.25, 0.5, 0.75], axis=0).transpose()"
+"0","    quantiles[""IQR""] = quantiles[0.75] - quantiles[0.25]"
+"0","    quantiles.columns = [""Q1"", ""Median"", ""Q3"", ""IQR""]"
+"0","    "
+"0","    # Calculate additional percentiles (33rd and 67th)"
+"0","    custom_percentiles = np.percentile(numeric_data, [33, 67], axis=0)"
+"0","    custom_percentiles_df = pd.DataFrame(custom_percentiles.T, columns=[""33rd Percentile"", ""67th Percentile""], index=numeric_data.columns)"
+"0","    "
+"0","    # Combine all statistics"
+"0","    stats_combined = pd.concat([descriptive_stats, quantiles, custom_percentiles_df], axis=1)"
+"0","    "
+"0","    return stats_combined"
+"0","    "
+"0","# Create summary statistics table for NPT pancreatic cancer"
+"0","npt_pancreatic_stats = calculate_numeric_statistics(npt_pancreatic_df)"
+"0",""
+"0","# Create summary statistics table for resistant pancreatic cancer"
+"0","resistant_pancreatic_stats = calculate_numeric_statistics(resistant_pancreatic_df)"
+"0",""
+"0","# Display the tables"
+"0","print(""Summary statistics for NPT Pancreatic cancer:"")"
+"1","Summary statistics for NPT Pancreatic cancer:
+"
+"0","print(npt_pancreatic_stats)"
+"1","                       count        mean  ...  33rd Percentile  67th Percentile
+Age                     53.0   66.679245  ...         63.00000          71.8400
+time_diff_months        53.0   12.784302  ...          3.91532          16.0384
+Event_Status            53.0    0.716981  ...          1.00000           1.0000
+Albumin                 53.0    3.743396  ...          3.61600           4.1000
+LMR                     53.0    4.054151  ...          2.46560           4.0000
+ANC                     53"
+"1",".0    6.628302  ...          4.60000           7.6680
+NLR                     53.0    4.435283  ...          2.92480           4.4128
+Prognostic_Score_ALAN   53.0    1.358491  ...          0.16000           2.0000
+WBC                     53.0    8.849057  ...          7.40000           9.7520
+LY                      53.0    1.683019  ...          1.40000           1.8000
+MON                     53.0    0.518868  ...          0.40000           0.6000
+HGB                     53.0   12.643396  ...       "
+"1","  11.41600          13.8680
+HCT                     53.0   38.336226  ...         35.90000          41.5000
+PLT                     53.0  272.226415  ...        223.16000         307.8400
+Alk_Phos                53.0  164.339623  ...         88.16000         157.5200
+Bilirubin               53.0    1.533962  ...          0.50000           0.8840
+
+[16 rows x 14 columns]
+"
+"0","print(""\nSummary statistics for resistant pancreatic cancer:"")"
+"1","
+Summary statistics for resistant pancreatic cancer:
+"
+"0","print(resistant_pancreatic_stats)"
+"1","                       count        mean  ...  33rd Percentile  67th Percentile
+Age                     53.0   65.471698  ...         62.16000         69.84000
+time_diff_months        53.0   11.336679  ...          4.82176         11.96068
+Event_Status            53.0    0.641509  ...          0.00000          1.00000
+Albumin                 53.0    3.743396  ...          3.50000          4.00000
+LMR                     53.0    4.553774  ...          2.85720          4.00000
+ANC                     53"
+"1",".0    7.335849  ...          4.70000          6.08400
+NLR                     53.0    5.806604  ...          2.80000          5.86720
+Prognostic_Score_ALAN   53.0    1.283019  ...          1.00000          2.00000
+WBC                     53.0    9.279245  ...          6.31600          8.30000
+LY                      53.0    1.475472  ...          1.10000          1.78400
+MON                     53.0    0.441509  ...          0.30000          0.50000
+HGB                     53.0   10.901887  ...       "
+"1","   9.81600         11.60000
+HCT                     53.0   33.947170  ...         30.84800         36.08400
+PLT                     53.0  245.126415  ...        182.16000        285.52000
+Alk_Phos                53.0  221.735849  ...         98.16000        191.68000
+Bilirubin               53.0    0.911321  ...          0.40000          0.68400
+
+[16 rows x 14 columns]
+"

@@ -1,0 +1,8 @@
+"0",""
+"0",""
+"0","# Convert resistant_kmplot and npt_kmplot to ggplot objects"
+"0","resistant_kmplot_gg <- resistant_kmplot$plot"
+"0","npt_kmplot_gg <- npt_kmplot$plot"
+"0",""
+"0","# Save the ggplot objects"
+"0","ggsave(filename = ""output/Cholangio_Output/resistant_kmplot.png"", plot = resistant_kmplot_gg, width = 10, height = 6)"

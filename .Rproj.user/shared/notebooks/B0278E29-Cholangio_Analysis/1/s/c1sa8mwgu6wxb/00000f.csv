@@ -1,0 +1,7 @@
+"0","quit"
+"0",""
+"0","# Create survival object for categorized_resistant_cholangio_df"
+"0","surv_obj_resistant <- Surv(time = categorized_resistant_cholangio_df$time_diff_months, event = categorized_resistant_cholangio_df$Event_Status)"
+"0",""
+"0","# Create survival object for categorized_npt_cholangio_df"
+"0","surv_obj_npt <- Surv(time = categorized_npt_cholangio_df$time_diff_months, event = categorized_npt_cholangio_df$Event_Status)"

@@ -1,0 +1,81 @@
+"0","def calculate_numeric_statistics(data):"
+"0","    # Select only numeric columns"
+"0","    numeric_data = data.select_dtypes(include=np.number)"
+"0","    "
+"0","    # Calculate descriptive statistics"
+"0","    descriptive_stats = numeric_data.describe().transpose()"
+"0","    "
+"0","    # Calculate interquartile range (IQR) and include quantiles (25th, 50th, and 75th percentiles)"
+"0","    quantiles = numeric_data.quantile([0.25, 0.5, 0.75], axis=0).transpose()"
+"0","    quantiles[""IQR""] = quantiles[0.75] - quantiles[0.25]"
+"0","    quantiles.columns = [""Q1"", ""Median"", ""Q3"", ""IQR""]"
+"0","    "
+"0","    # Calculate additional percentiles (33rd and 67th)"
+"0","    custom_percentiles = np.percentile(numeric_data, [33, 67], axis=0)"
+"0","    custom_percentiles_df = pd.DataFrame(custom_percentiles.T, columns=[""33rd Percentile"", ""67th Percentile""], index=numeric_data.columns)"
+"0","    "
+"0","    # Combine all statistics"
+"0","    stats_combined = pd.concat([descriptive_stats, quantiles, custom_percentiles_df], axis=1)"
+"0","    "
+"0","    return stats_combined"
+"0","    "
+"0","# Create summary statistics table for NPT Cholangiocarcinoma"
+"0","npt_cholangio_stats = calculate_numeric_statistics(npt_cholangio_df)"
+"0",""
+"0","# Create summary statistics table for resistant Cholangiocarcinoma"
+"0","resistant_cholangio_stats = calculate_numeric_statistics(resistant_cholangio_df)"
+"0",""
+"0","# Display the tables"
+"0","print(""Summary statistics for NPT Cholangiocarcinoma:"")"
+"1","Summary statistics for NPT Cholangiocarcinoma:
+"
+"0","print(npt_cholangio_stats)"
+"1","                       count        mean  ...  33rd Percentile  67th Percentile
+Age                     19.0   69.684211  ...         65.94000         74.00000
+time_diff_months        19.0   30.559263  ...          6.42504         27.70736
+Event_Status            19.0    0.473684  ...          0.00000          1.00000
+Albumin                 19.0    4.068421  ...          3.78200          4.20000
+LMR                     19.0    3.755789  ...          1.99400          3.57600
+ANC                     19"
+"1",".0    6.847368  ...          4.78200          7.49000
+NLR                     19.0    4.001579  ...          2.39340          4.71660
+Prognostic_Score_ALAN   19.0    1.421053  ...          0.00000          2.00000
+WBC                     19.0    9.394737  ...          7.30000         10.48400
+LY                      19.0    1.878947  ...          1.50000          2.10600
+MON                     19.0    0.700000  ...          0.59400          0.90000
+HGB                     19.0   12.442105  ...       "
+"1","  11.40000         13.70600
+HCT                     19.0   38.352632  ...         34.70000         41.21800
+PLT                     19.0  299.894737  ...        243.84000        343.24000
+Alk_Phos                19.0  256.684211  ...         99.88000        378.92000
+Bilirubin               19.0    1.900000  ...          0.50000          1.01800
+
+[16 rows x 14 columns]
+"
+"0","print(""\nSummary statistics for resistant Cholangiocarcinoma:"")"
+"1","
+Summary statistics for resistant Cholangiocarcinoma:
+"
+"0","print(resistant_cholangio_stats)"
+"1","                       count        mean  ...  33rd Percentile  67th Percentile
+Age                     19.0   62.421053  ...         57.00000         68.06000
+time_diff_months        19.0   21.204263  ...          9.15824         20.30774
+Event_Status            19.0    0.368421  ...          0.00000          1.00000
+Albumin                 19.0    3.747368  ...          3.68800          4.10600
+LMR                     19.0    3.325789  ...          2.49580          3.34020
+ANC                     19"
+"1",".0    5.794737  ...          3.99400          5.51200
+NLR                     19.0    4.596842  ...          2.44000          5.13600
+Prognostic_Score_ALAN   19.0    1.157895  ...          0.00000          2.00000
+WBC                     19.0    7.673684  ...          5.89400          7.30000
+LY                      19.0    1.405263  ...          1.00000          1.60600
+MON                     19.0    0.478947  ...          0.40000          0.60000
+HGB                     19.0   11.615789  ...       "
+"1","  10.89400         12.04200
+HCT                     19.0   35.747368  ...         33.96200         38.12400
+PLT                     19.0  178.578947  ...        124.88000        204.06000
+Alk_Phos                19.0  165.368421  ...         83.10000        187.58000
+Bilirubin               19.0    1.063158  ...          0.59400          0.80600
+
+[16 rows x 14 columns]
+"

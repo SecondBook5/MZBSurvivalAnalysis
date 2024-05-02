@@ -1,0 +1,55 @@
+"0","# Check data types of columns in DataFrame"
+"0","print(npt_cholangio_df.dtypes)"
+"1","ID                         object
+Gender                   category
+Age                         int64
+Cancer_Type              category
+Prior_Tx                 category
+Resistant                category
+Cancer_Status            category
+time_diff_months          float64
+Event_Status                int64
+Albumin                   float64
+LMR                       float64
+ANC                       float64
+NLR                       float64
+Prognostic_Score_ALAN       int64
+Risk_Group_ALAN       "
+"1","   category
+WBC                       float64
+LY                        float64
+MON                       float64
+HGB                       float64
+HCT                       float64
+PLT                       float64
+Alk_Phos                    int64
+Bilirubin                 float64
+dtype: object
+"
+"0","print(resistant_cholangio_df.dtypes)"
+"1","ID                         object
+Gender                   category
+Age                         int64
+Cancer_Type              category
+Prior_Tx                 category
+Resistant                category
+Cancer_Status            category
+time_diff_months          float64
+Event_Status                int64
+Albumin                   float64
+LMR                       float64
+ANC                       float64
+NLR                       float64
+Prognostic_Score_ALAN       int64
+Risk_Group_ALAN       "
+"1","   category
+WBC                       float64
+LY                        float64
+MON                       float64
+HGB                       float64
+HCT                       float64
+PLT                       float64
+Alk_Phos                    int64
+Bilirubin                 float64
+dtype: object
+"

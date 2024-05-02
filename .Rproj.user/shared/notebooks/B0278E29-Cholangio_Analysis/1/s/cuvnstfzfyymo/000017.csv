@@ -1,0 +1,4 @@
+"0","  "
+"0","combined_gg <- combined_kmplot$plot"
+"0","# Save the ggplot objects"
+"0","ggsave(filename = ""output/Cholangio_Output/resistant_v_npt_kmplot.png"", plot = combined_gg, width = 10, height = 6)"

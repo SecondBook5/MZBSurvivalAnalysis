@@ -1,0 +1,4 @@
+"0","# Define the variables of interest for the  dataset"
+"0","variables_of_interest <- c(""Albumin_3.5"", ""LMR_2.1"", ""MON_0.8"", ""LY_1.5"", ""ANC_4"", ""ANC_8"", "
+"0","                                     ""NLR_3"", ""NLR_5"", ""PLT_300"", ""Alk_Phos_135"", ""Alk_Phos_200"", "
+"0","                                     ""Age_60"", ""Age_65"", ""Age_70"", ""Cancer_Status"")"
