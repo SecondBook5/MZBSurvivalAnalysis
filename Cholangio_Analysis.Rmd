@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Clear the entire environment
 rm(list = ls())
 
-setwd("C:/Users/ajboo/BookAbraham/RProjects/SurvivalAnalysis")
+setwd("C:/Users/ajboo/BookAbraham/RProjects/MZBSurvivalAnalysis")
 
 # Define the output directory path
 output_dir <- "output/Cholangio_Output"

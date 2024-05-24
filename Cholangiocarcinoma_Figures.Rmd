@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Clear the entire environment
 rm(list = ls())
 
-setwd("C:/Users/ajboo/BookAbraham/RProjects/SurvivalAnalysis")
+setwd("C:/Users/ajboo/BookAbraham/RProjects/MZBSurvivalAnalysis")
 
 # Define the output directory path
 output_dir <- "output"
@@ -478,19 +478,22 @@ library(ggplotify)
     library(survminer)
   }
 
+
 kmfit <- survfit(Surv(time = categorized_cholangio_df$time_diff_months, event = categorized_cholangio_df$Event_Status) ~1, data = categorized_cholangio_df)
 
 kmplot <- ggsurvplot(kmfit,
                               data = categorized_cholangio_df,
-                              title = "Survival Curve for Cholangiocarcinoma",
+                              #title = " Overall Survival Curve for Cholangiocarcinoma",
                               censor = TRUE,
                               xlab = "Time (Months)",
                               ylab = "Survival Probability",
                               conf.int = TRUE,
                               conf.int.style = "step",
                               conf.int.alpha = 0.2,
+                              pval = TRUE,
                               ggtheme = theme_minimal(),
                               surv.median.line = "hv",
+                              risk.table = TRUE,
                               xlim = c(0, 24),
                               break.time.by = 3,
                               breaks = seq(0, 24, by = 3),
@@ -863,10 +866,10 @@ kmplot_all <- ggsurvplot(kmfit_all,
                               conf.int.alpha = 0.2,
                               ggtheme = theme_minimal(),
                               surv.median.line = "hv",
-                              #xlim = c(0, 60),
-                              break.time.by = 12,
-                              #breaks = seq(0, 24, by = 3),
-                              risk.table = TRUE,
+                              xlim = c(0, 24),
+                              break.time.by = 3,
+                              breaks = seq(0, 24, by = 3),
+                              risk.table = "abs_pct",
                               surv.scale = "percent",
                               legend.labs = paste("Cholangiocarcinoma (N =", nrow(categorized_cholangio_df),")"),
                      
@@ -922,9 +925,9 @@ for (variable in variables_of_interest) {
     conf.int.style = "step",
     conf.int.alpha = 0.2,
     surv.median.line = "hv",
-    #xlim = c(0, 24),
-    break.time.by = 12,
-    #breaks = seq(0, 24, by = 3),
+    xlim = c(0, 24),
+    break.time.by = 3,
+    breaks = seq(0, 24, by = 3),
     surv.scale = "percent",
     risk.table = TRUE,
     legend.labs = c(legend_label[1], legend_label[2]),  # Assuming two groups for now
@@ -984,7 +987,7 @@ for (variable in variables_of_interest) {
   km_plot <- ggsurvplot(
     km_fit,
     data = cca_df,
-    title = "Kaplan Meier Curve of Advanced Intrahepatic Cholangiocarcinoma Survival by Prior Treatment",
+    title = "Advanced Intrahepatic Cholangiocarcinoma Survival by Prior Treatment",
     censor = TRUE,
     xlab = "Time (Months)",
     ylab = "Survival Probability",
@@ -992,21 +995,22 @@ for (variable in variables_of_interest) {
     conf.int.style = "step",
     conf.int.alpha = 0.2,
     surv.median.line = "hv",
-    #xlim = c(0, 24),
-    break.time.by = 12,
-    #breaks = seq(0, 24, by = 3),
+    xlim = c(0, 24),
+    break.time.by = 3,
+    breaks = seq(0, 24, by = 3),
     surv.scale = "percent",
     risk.table = TRUE,
+    pval = TRUE,
     legend.labs = c(legend_label[1], legend_label[2]),  # Assuming two groups for now
     palette = "lancet"
   )
   
   # Add annotation to the plot
-  km_plot <- km_plot$plot + annotate(
-    "text", x = 0, y = 0.05, 
-    label = paste("Log-Rank p-value:", logrank_p, "\nHazard Ratio:", cox_HR), 
-    hjust = 0, vjust = 0, size =3 
-  )
+  #km_plot <- km_plot$plot + annotate(
+    #"text", x = 0, y = 0.05, 
+    #label = paste("Log-Rank p-value:", logrank_p, "\nHazard Ratio:", cox_HR), 
+    #hjust = 0, vjust = 0, size =3 
+  #)
   
   # Apply custom theme
   km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
@@ -1048,16 +1052,22 @@ kmplot_group <- ggsurvplot(
   kmfit_group,
   data = cca_df,
   pval = TRUE,
-  title = "Kaplan Meier Curve of Advanced Intrahepatic Cholangiocarcinoma Survival by Prior Treatment and ALAN Score",
+  risk.table.title = "Kaplan Meier Curve of Advanced Intrahepatic Cholangiocarcinoma 
+  Survival by Prior Treatment and ALAN Score",
   censor = TRUE,
   xlab = "Time (Months)",
   ylab = "Survival Probability",
   ggtheme = theme_minimal(),
   surv.median.line = "hv",
-  break.time.by = 12,
+  xlim = c(0, 24),
+  break.time.by = 3,
+  breaks = seq(0, 24, by = 3),
   risk.table = TRUE,
   surv.scale = "percent",
+  risk.table.height = 0.5,
+  fontsize = 3,
   legend.labs = legend_labels, # Use the modified legend labels
+  risk.table.col = "strata",
   palette = "lancet"
 ) 
 
@@ -1179,7 +1189,7 @@ variables_of_interest <- c("Albumin_3.5", "LMR_2.1", "MON_0.8", "LY_1.5", "ANC_4
 
 ```{r KM Plot }
 # Open a PDF device
-pdf("output/cca_km_plots.pdf")
+#pdf("output/cca_km_plots.pdf")
 
 # Loop through each variable and save its plot on a separate page
 for (variable in variables_of_interest) {
@@ -1215,6 +1225,7 @@ for (variable in variables_of_interest) {
     conf.int.style = "step",
     conf.int.alpha = 0.2,
     surv.median.line = "hv",
+    risk.table = "abs_pct", 
     xlim = c(0, 24),
     break.time.by = 3,
     breaks = seq(0, 24, by = 3),
@@ -1238,7 +1249,7 @@ for (variable in variables_of_interest) {
 }
 
 # Close the PDF device
-dev.off()
+#dev.off()
 
 
 ```
@@ -1272,13 +1283,15 @@ cox_HR <- format(cox_HR, scientific = TRUE, digits = 3)
 km_plot <- ggsurvplot(
   km_fit,
   data = cca_df,
-  title = paste("Kaplan-Meier Curve of Cholangiocarcinoma by ALAN Score"),
+  risk.table.title = paste("Kaplan-Meier Curve of Advanced Intrahepatic Cholangiocarcinoma by ALAN Score"),
   censor = TRUE,
   xlab = "Time (Months)",
   ylab = "Survival Probability",
   conf.int = TRUE,
   conf.int.style = "step",
   conf.int.alpha = 0.2,
+  pval = TRUE,
+  risk.table = TRUE,
   surv.median.line = "hv",
   xlim = c(0, 24),
   break.time.by = 3,
@@ -1289,11 +1302,11 @@ km_plot <- ggsurvplot(
 )
 
 # Add annotation to the plot
-km_plot <- km_plot$plot + annotate(
-  "text", x = 0, y = 0.05, 
-  label = paste("Log-Rank p-value:", logrank_p, "\nHazard Ratio:", cox_HR), 
-  hjust = 0, vjust = 0
-)
+#km_plot <- km_plot$plot + annotate(
+  #"text", x = 0, y = 0.05, 
+  #label = paste("Log-Rank p-value:", logrank_p, "\nHazard Ratio:", cox_HR), 
+  #hjust = 0, vjust = 0
+#)
 
 # Apply custom theme
 km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
@@ -1301,7 +1314,7 @@ km_plot <- km_plot + ggsurvfit::theme_ggsurvfit_KMunicate()
 # Display the plot
 print(km_plot)
 
-ggsave(filename = "output/cholangio_ALAN_kmplot.png", plot = km_plot, width = 10, height = 6)
+#ggsave(filename = "output/cholangio_ALAN_kmplot.png", plot = km_plot, width = 10, height = 6)
 ```
 
 
