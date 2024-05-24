@@ -1,5 +1,0 @@
-"0",""
-"0","# Save the table as an image"
-"0","gtsave(npt_cholangio_table, filename = file.path(output_dir, ""npt_cholangio_table.png""))"
-"2","file:///C:/Users/ajboo/AppData/Local/Temp/Rtmp4cE8uh/file6f6ce205cc8.html screenshot completed
-"

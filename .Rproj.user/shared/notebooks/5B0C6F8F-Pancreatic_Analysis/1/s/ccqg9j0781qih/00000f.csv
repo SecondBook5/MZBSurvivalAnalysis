@@ -1,7 +1,0 @@
-"0","quit"
-"0",""
-"0","#Load Util functions"
-"0","source(""Utils.R"")"
-"0",""
-"0","# Generate the first table for Resistant Pancreatic Cancer"
-"0","resistant_pancreatic_table <- calc_num_stats(py$resistant_pancreatic_df, selected_labels = c(""Quantiles"", ""Percentiles""), percentiles = c(33, 67), title = ""Numeric Statistics for Resistant Pancreatic Cancer"")"

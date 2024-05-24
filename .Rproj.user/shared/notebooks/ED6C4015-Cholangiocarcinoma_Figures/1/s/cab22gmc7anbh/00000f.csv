@@ -1,5 +1,0 @@
-"0",""
-"0","levels <- levels(categorized_cholangio_df$Cancer_Status)"
-"0",""
-"0","    label1 <- paste(levels[1], "" (N ="", sum(categorized_cholangio_df$Cancer_Status == levels[1]), "")"", sep = """")"
-"0","      label2 <- paste(levels[2], "" (N ="", sum(categorized_cholangio_df$Cancer_Status == levels[2]), "")"", sep = """")"

@@ -1,4 +1,0 @@
-"0","save_gt_as_image(cat_stats_npt_pancreatic, ""categoric_stats_npt_pancreatic.png"")"
-"2","file:///C:/Users/ajboo/AppData/Local/Temp/Rtmp4cE8uh/file6f6c1c90264e.html screenshot completed
-"
-"0","cat_stats_resistant_pancreatic <- calc_cat_stats(categorized_resistant_pancreatic_df, title = ""Categoric Statistics for Resistant- Pancreatic Cancer"")"

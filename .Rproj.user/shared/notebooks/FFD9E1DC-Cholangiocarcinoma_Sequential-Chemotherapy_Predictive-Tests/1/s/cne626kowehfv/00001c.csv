@@ -1,7 +1,0 @@
-"0",""
-"0",""
-"0","# Convert to gg objects"
-"0","kmplot_gg <- kmplot$plot"
-"0",""
-"0","# Save the ggplot objects"
-"0","ggsave(filename = ""output/kmplot.png"", plot = kmplot_gg, width = 10, height = 6)"

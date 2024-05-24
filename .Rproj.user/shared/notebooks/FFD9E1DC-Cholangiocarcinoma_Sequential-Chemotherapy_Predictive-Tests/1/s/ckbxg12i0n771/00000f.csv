@@ -1,5 +1,0 @@
-"0","quit"
-"0",""
-"0",""
-"0","# Create survival object for categorized_cholangio_df"
-"0","surv_obj <- Surv(time = categorized_cholangio_df$time_diff_months, event = categorized_cholangio_df$Event_Status)"
